@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IncognitoChat // WhatsApp Mode</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-main: #0a0a0c;
+            --panel-bg: #121214;
+            --panel-card: #1a1a1e;
+            --border-color: #26262b;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --accent-green: #10b981;
+            --accent-danger: #ef4444;
+            --bubble-me: #27272a;
+            --bubble-them: #1c1c1f;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); display: flex; justify-content: center; align-items: center; height: 100vh; }
+        
+        .app-window { width: 100%; max-width: 480px; height: 90vh; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7); }
+        .nav-tabs { display: flex; border-bottom: 1px solid var(--border-color); background: #0d0d0f; flex-shrink: 0; }
+        .tab-btn { flex: 1; background: none; border: none; color: var(--text-muted); padding: 15px; font-weight: 600; cursor: pointer; font-size: 0.9rem; text-align: center; }
+        .tab-btn.active { color: var(--text-main); border-bottom: 2px solid var(--text-main); background: var(--panel-bg); }
+        
+        .tab-content { display: none; padding: 24px; flex-direction: column; gap: 20px; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .tab-content.active { display: flex; }
+        .card { background: var(--panel-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; }
+        
+        h3 { font-size: 1rem; font-weight: 600; }
+        label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+        input, select { background: #0d0d0f; border: 1px solid var(--border-color); color: var(--text-main); padding: 12px 16px; border-radius: 8px; outline: none; width: 100%; }
+        
+        .btn { background: var(--text-main); color: var(--bg-main); border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.95rem; text-align: center; }
+        .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-danger { background: var(--accent-danger); color: white; }
+        
+        .share-box { background: #0d0d0f; padding: 16px; border-radius: 8px; border: 1px dashed var(--border-color); text-align: center; }
+        .code-display { font-family: monospace; font-size: 1.3rem; font-weight: 700; color: var(--accent-green); margin: 8px 0; }
+        
+        #chat-screen { display: none; height: 100%; flex-direction: column; }
+        .top-bar { padding: 16px 20px; background: #0d0d0f; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .messages-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #08080a; -webkit-overflow-scrolling: touch; }
+        
+        .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; }
+        .msg.me { align-self: flex-end; background-color: var(--bubble-me); border-bottom-right-radius: 2px; }
+        .msg.them { align-self: flex-start; background-color: var(--bubble-them); border-top-left-radius: 2px; border: 1px solid var(--border-color); }
+        .msg-time { font-size: 0.65rem; color: var(--text-muted); text-align: right; margin-top: 4px; }
+        .system-msg { text-align: center; color: var(--text-muted); font-size: 0.75rem; align-self: center; }
+        
+        .input-bar { padding: 16px; background: #0d0d0f; border-top: 1px solid var(--border-color); display: flex; gap: 10px; flex-shrink: 0; }
+        
+        /* WhatsApp Style Chat Items */
+        #chat-list { display: flex; flex-direction: column; gap: 10px; }
+        .chat-item { background: var(--panel-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
+        .chat-item:hover { background: #222227; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+        .status-dot.online { background: var(--accent-green); }
+    </style>
+</head>
+<body>
+
+    <div class="app-window">
+        <div id="setup-container" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <div class="nav-tabs">
+                <div class="tab-btn active" onclick="switchTab('chats-tab')">Chats</div>
+                <div class="tab-btn" onclick="switchTab('new-room-tab')">New Thread</div>
+            </div>
+
+            <div id="chats-tab" class="tab-content active">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+                    <h3 style="color: var(--text-muted);">Active Threads</h3>
+                    <button class="btn btn-danger" style="padding:6px 12px; font-size:0.75rem" onclick="clearAllHistory()">Purge All</button>
+                </div>
+                <div id="chat-list"></div>
+            </div>
+
+            <div id="new-room-tab" class="tab-content">
+                <div class="card">
+                    <h3>Create New Channel (Host)</h3>
+                    <div>
+                        <label>Retention Policy</label>
+                        <select id="chat-mode" style="margin-top:6px;">
+                            <option value="permanent">Persistent Room (Stays on Dashboard)</option>
+                            <option value="temporary">Ephemeral (One-time use)</option>
+                        </select>
+                    </div>
+                    <button class="btn" onclick="createNewHostRoom()">Generate Code</button>
+                    
+                    <div id="host-share-ui" class="share-box" style="display: none;">
+                        <label>Share Code with Partner</label>
+                        <div class="code-display" id="my-code-element">---</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Join via Existing Code (Guest)</h3>
+                    <input type="text" id="target-code" placeholder="Enter room code token..." style="text-transform:uppercase;">
+                    <button class="btn btn-secondary" onclick="joinExistingRoom()">Add to Dashboard & Open</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-screen">
+            <div class="top-bar">
+                <div>
+                    <span id="role-badge" style="font-weight: 600;">Secure Node</span>
+                    <div id="policy-badge" style="font-size:0.7rem; color: var(--text-muted)">Connecting...</div>
+                </div>
+                <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="closeActiveChatView()">Back</button>
+            </div>
+            <div class="messages-area" id="msg-box"></div>
+            <div class="input-bar">
+                <input type="text" id="chat-input" placeholder="Type message..." onkeypress="if(event.key==='Enter') sendPayload()">
+                <button class="btn" onclick="sendPayload()" style="width: 45px; padding:0;">➤</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let peer = null;
+        let connection = null;
+        let myRole = null;
+        let chatMode = 'permanent';
+        let currentRoomId = null;
+
+        const peerConfig = {
+            debug: 1,
+            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+        };
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Highlight right tab
+            const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => 
+                (tabId === 'chats-tab' && b.innerText === 'Chats') || 
+                (tabId === 'new-room-tab' && b.innerText === 'New Thread')
+            );
+            if(targetBtn) targetBtn.classList.add('active');
+            
+            document.getElementById(tabId).classList.add('active');
+            if (tabId === 'chats-tab') renderDashboardChatsList();
+        }
+
+        // --- DASHBOARD LIFECYCLE ---
+        function createNewHostRoom() {
+            chatMode = document.getElementById('chat-mode').value;
+            currentRoomId = 'INC-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+            
+            document.getElementById('host-share-ui').style.display = 'block';
+            document.getElementById('my-code-element').innerText = currentRoomId;
+
+            // Initialize storage framework for the host instantly
+            saveMessageToStorage(currentRoomId, 'System', 'Room created.', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), chatMode);
+            renderDashboardChatsList();
+            
+            // Go ahead and launch connectivity logic
+            bootNetworkConnection('host', currentRoomId);
+        }
+
+        function joinExistingRoom() {
+            const target = document.getElementById('target-code').value.trim().toUpperCase();
+            if(!target) return alert("Please specify a room code.");
+            
+            currentRoomId = target;
+            chatMode = 'permanent'; // Default assumptions until handshake checks out
+
+            // Put it on the dashboard registry list instantly
+            saveMessageToStorage(currentRoomId, 'System', 'Joined room.', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 'permanent');
+            
+            bootNetworkConnection('guest', currentRoomId);
+        }
+
+        // --- THE ENGINE: AUTOMATIC RE-CONNECTION CONNECTIVITY LAYER ---
+        function bootNetworkConnection(role, roomId) {
+            currentRoomId = roomId;
+            myRole = role;
+
+            if(peer) peer.destroy();
+            document.getElementById('msg-box').innerHTML = '';
+
+            // Switch UI immediately into the room view
+            document.getElementById('setup-container').style.display = 'none';
+            document.getElementById('chat-screen').style.display = 'flex';
+            document.getElementById('role-badge').innerText = `Room: ${roomId}`;
+            document.getElementById('policy-badge').innerText = "Connecting to network...";
+
+            // Load all historical message items into current view pane
+            loadLocalChatMessagesIntoUI(roomId);
+
+            if (role === 'host') {
+                peer = new Peer(roomId, peerConfig);
+                peer.on('open', () => { document.getElementById('policy-badge').innerText = "Waiting for partner..."; });
+                peer.on('connection', (conn) => {
+                    connection = conn;
+                    handleConnectionPipeline();
+                });
+            } else {
+                peer = new Peer(peerConfig); // Guest assigned variable socket identity
+                peer.on('open', () => {
+                    document.getElementById('policy-badge').innerText = "Connecting to Host...";
+                    connection = peer.connect(roomId, { reliable: true });
+                    handleConnectionPipeline();
+                });
+            }
+
+            peer.on('error', (err) => {
+                if(err.type === 'unavailable-id') {
+                    // Critical Switch: If ID is taken, it means your partner is already hosting it!
+                    // Act like a WhatsApp partner and turn into a Guest automatically!
+                    console.log("Port live. Flipping roles to bridge active room node.");
+                    bootNetworkConnection('guest', roomId);
+                } else {
+                    document.getElementById('policy-badge').innerText = "Offline Mode";
+                }
+            });
+        }
+
+        function handleConnectionPipeline() {
+            connection.on('open', () => {
+                document.getElementById('policy-badge').innerText = "🟢 Online";
+                
+                // Sync past items down to guest node automatically if you're hosting
+                if(myRole === 'host') {
+                    let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
+                    setTimeout(() => connection.send({
+                        type: 'sync-payload', 
+                        mode: chatMode, 
+                        history: database[currentRoomId]?.messages || []
+                    }), 500);
+                }
+            });
+
+            connection.on('data', (data) => {
+                if(data.type === 'sync-payload') {
+                    chatMode = data.mode;
+                    if(data.history.length > 0) {
+                        mergeHistoricalLogs(currentRoomId, data.history);
+                    }
+                } else if (data.type === 'msg') {
+                    renderMessage('them', data.text, data.time);
+                    saveMessageToStorage(currentRoomId, 'Them', data.text, data.time, chatMode);
+                }
+            });
+
+            connection.on('close', () => {
+                document.getElementById('policy-badge').innerText = "Partner disconnected";
+            });
+        }
+
+        // --- MESSAGE DISPATCH MECHANICS ---
+        function sendPayload() {
+            const input = document.getElementById('chat-input');
+            const txt = input.value.trim();
+            if(!txt) return;
+
+            const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            if(connection && connection.open) {
+                connection.send({ type: 'msg', text: txt, time: timeStr });
+            }
+            renderMessage('me', txt, timeStr);
+            saveMessageToStorage(currentRoomId, 'Me', txt, timeStr, chatMode);
+            input.value = '';
+        }
+
+        function renderMessage(sender, text, time) {
+            const box = document.getElementById('msg-box');
+            const msgEl = document.createElement('div');
+            msgEl.className = `msg ${sender === 'me' || sender === 'Me' ? 'me' : 'them'}`;
+            msgEl.innerHTML = `${text} <div class="msg-time">${time}</div>`;
+            box.appendChild(msgEl);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // --- SYSTEM BACKEND STORAGE ACTIONS ---
+        function saveMessageToStorage(roomId, author, text, time, mode) {
+            let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
+            if (!database[roomId]) {
+                database[roomId] = { mode: mode, date: new Date().toLocaleDateString(), messages: [] };
+            }
+            database[roomId].messages.push({ author, text, time });
+            localStorage.setItem('whatsapp_vault', JSON.stringify(database));
+        }
+
+        function mergeHistoricalLogs(roomId, incomingHistory) {
+            let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
+            database[roomId].messages = incomingHistory;
+            localStorage.setItem('whatsapp_vault', JSON.stringify(database));
+            
+            // Refresh view
+            loadLocalChatMessagesIntoUI(roomId);
+        }
+
+        function loadLocalChatMessagesIntoUI(roomId) {
+            document.getElementById('msg-box').innerHTML = '';
+            let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
+            if(database[roomId]) {
+                chatMode = database[roomId].mode || 'permanent';
+                database[roomId].messages.forEach(m => {
+                    renderMessage(m.author, m.text, m.time);
+                });
+            }
+        }
+
+        function renderDashboardChatsList() {
+            const container = document.getElementById('chat-list');
+            container.innerHTML = '';
+            let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
+            const keys = Object.keys(database);
+
+            if(keys.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:40px 0;">No active rooms. Generate or type a code to start.</div>';
+                return;
+            }
+
+            keys.forEach(roomId => {
+                const item = database[roomId];
+                const lastMsg = item.messages[item.messages.length - 1] || { text: 'No messages yet.' };
+                
+                const div = document.createElement('div');
+                div.className = 'chat-item';
+                div.onclick = () => bootNetworkConnection('host', roomId);
+                div.innerHTML = `
+                    <div style="flex:1; padding-right:10px; overflow:hidden;">
+                        <div style="font-weight:600; font-size:0.95rem; margin-bottom:4px;">${roomId}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            ${lastMsg.text}
+                        </div>
+                    </div>
+                    <div style="text-align:right; flex-shrink:0;">
+                        <span style="font-size:0.7rem; color:var(--text-muted);">${item.date}</span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function closeActiveChatView() {
+            if(peer) peer.destroy();
+            
+            // Clean up temporary session entries instantly upon exit
+            if(chatMode === 'temporary') {
+                let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
+                delete database[currentRoomId];
+                localStorage.setItem('whatsapp_vault', JSON.stringify(database));
+            }
+
+            document.getElementById('chat-screen').style.display = 'none';
+            document.getElementById('setup-container').style.display = 'flex';
+            switchTab('chats-tab');
+        }
+
+        function clearAllHistory() {
+            if(confirm("Delete all chats and codes from your history?")) {
+                localStorage.removeItem('whatsapp_vault');
+                renderDashboardChatsList();
+            }
+        }
+
+        // App start lifecycle setup initialization load triggers
+        document.addEventListener("DOMContentLoaded", () => {
+            renderDashboardChatsList();
+        });
+    </script>
+</body>
+</html>
