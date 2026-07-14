@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>EduChat Mobile Portal</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -31,7 +31,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-950 transition-colors duration-300 h-screen w-screen overflow-hidden flex flex-col antialiased select-none">
+<body class="bg-gray-100 dark:bg-gray-950 transition-colors duration-300 h-[100dvh] w-screen overflow-hidden flex flex-col antialiased select-none pb-[safe-area-inset-bottom]">
 
     <!-- Auth Gateway Overlay -->
     <div id="auth-screen" class="fixed inset-0 z-50 bg-gray-50 dark:bg-[#0b141a] flex flex-col p-6 overflow-y-auto justify-center">
@@ -124,7 +124,7 @@
             </div>
 
             <!-- Scrollable Message Bubble Field -->
-            <div class="flex-1 overflow-y-auto p-4 space-y-2.5 flex flex-col" id="message-container"></div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-2.5 flex flex-col shadow-inner" id="message-container"></div>
 
             <!-- Voice Recording Panel Overlay -->
             <div id="recording-panel" class="hidden bg-gray-50 dark:bg-[#202c33] py-3.5 px-4 flex items-center justify-between border-t border-gray-200 dark:border-transparent shrink-0">
@@ -152,11 +152,11 @@
             </div>
 
             <!-- Chat Control Deck Box -->
-            <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-2 flex items-center space-x-2 border-t border-gray-200 dark:border-transparent shrink-0 w-full">
+            <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-3 flex items-center space-x-2 border-t border-gray-200 dark:border-transparent shrink-0 w-full mb-[safe-area-inset-bottom]">
                 <div class="relative">
                     <button onclick="toggleMobileAttachmentOverlay()" class="p-2 text-gray-500 dark:text-gray-300 flex items-center justify-center"><i class="fa-solid fa-plus text-base"></i></button>
                     
-                    <div id="mobile-attachment-box" class="hidden absolute bottom-12 left-0 bg-white dark:bg-[#233138] rounded-xl shadow-2xl p-1 border border-gray-200 dark:border-transparent w-40 z-50 flex flex-col">
+                    <div id="mobile-attachment-box" class="hidden absolute bottom-14 left-0 bg-white dark:bg-[#233138] rounded-xl shadow-2xl p-1 border border-gray-200 dark:border-transparent w-40 z-50 flex flex-col">
                         <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-[#374248] rounded-lg cursor-pointer text-gray-700 dark:text-gray-200 text-xs">
                             <i class="fa-solid fa-file-pdf text-indigo-500 text-sm"></i>
                             <span>Document</span>
@@ -251,6 +251,16 @@
             } else {
                 document.getElementById("auth-screen").classList.remove("hidden");
                 switchAuthTab("login");
+            }
+
+            // Keyboard Viewport Adjustment Hack for mobile browsers
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', () => {
+                    document.body.style.height = window.visualViewport.height + 'px';
+                    if (selectedPhone !== "") {
+                        document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
+                    }
+                });
             }
         };
 
@@ -511,7 +521,6 @@
             selectedPeerID = peerKey;
             selectedName = nameKey;
 
-            // Clear unread indicator badge instantly
             if (unreadCounts[phoneKey]) {
                 unreadCounts[phoneKey] = 0;
                 localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
