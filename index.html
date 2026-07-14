@@ -52,16 +52,16 @@
                 <!-- Name Field (Visible during Sign Up) -->
                 <div id="auth-name-wrapper" class="hidden">
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Full Name</label>
-                    <input type="text" id="auth-name-input" placeholder="e.g. Alex Rivera" class="w-full bg-gray-55 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                    <input type="text" id="auth-name-input" placeholder="e.g. Alex Rivera" class="w-full bg-gray-100 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Phone Number</label>
-                    <input type="tel" id="auth-phone-input" oninput="checkForTeacherPhone(this)" placeholder="e.g. 8240330068" class="w-full bg-gray-55 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono">
+                    <input type="tel" id="auth-phone-input" oninput="checkForTeacherPhone(this)" placeholder="e.g. 8240330068" class="w-full bg-gray-100 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono">
                 </div>
                 <!-- Teacher Key Field (Conditionally triggered) -->
                 <div id="teacher-password-wrapper" class="hidden">
                     <label class="block text-xs font-semibold text-red-500 dark:text-red-400 mb-1">Teacher Security Password</label>
-                    <input type="password" id="auth-teacher-pass" placeholder="Enter Teacher Credentials Key" class="w-full bg-gray-55 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-red-300 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+                    <input type="password" id="auth-teacher-pass" placeholder="Enter Teacher Credentials Key" class="w-full bg-gray-100 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-red-300 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
                 </div>
             </div>
 
@@ -152,7 +152,7 @@
             </div>
 
             <!-- Chat Control Deck Box -->
-            <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-2 flex items-center space-x-2 border-t border-gray-200 dark:border-transparent shrink-0">
+            <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-2 flex items-center space-x-2 border-t border-gray-200 dark:border-transparent shrink-0 w-full">
                 <div class="relative">
                     <button onclick="toggleMobileAttachmentOverlay()" class="p-2 text-gray-500 dark:text-gray-300 flex items-center justify-center"><i class="fa-solid fa-plus text-base"></i></button>
                     
@@ -170,8 +170,8 @@
                     </div>
                 </div>
 
-                <div class="flex-1 bg-white dark:bg-[#2a3942] rounded-full px-4 py-1.5 flex items-center border border-gray-100 dark:border-transparent">
-                    <input type="text" id="input-chat-message" onkeydown="catchInputEnter(event)" oninput="evaluateControlIcons()" placeholder="Message..." class="bg-transparent border-none text-xs w-full focus:outline-none text-gray-800 dark:text-gray-100">
+                <div class="flex-1 bg-white dark:bg-[#2a3942] rounded-full px-4 py-1.5 flex items-center border border-gray-100 dark:border-[#374248]">
+                    <input type="text" id="input-chat-message" onkeydown="catchInputEnter(event)" oninput="evaluateControlIcons()" placeholder="Type a message..." class="bg-transparent border-none text-sm w-full focus:outline-none text-gray-800 dark:text-gray-100">
                 </div>
 
                 <div class="shrink-0 flex items-center justify-center w-9 h-9">
@@ -218,7 +218,7 @@
         let globalHistory = [];
         let globalBlocks = [];
         let registryList = []; 
-        let unreadCounts = {}; // Key: ThreadOwner (Phone number string), Value: Number of unread messages
+        let unreadCounts = {}; 
 
         let micRecorderObj = null;
         let capturedChunks = [];
@@ -227,7 +227,6 @@
         let globalAudioStreamRef = null;
         let queuedAttachedFile = null;
 
-        // Variables to handle alert toast clicks
         let pendingAlertPhone = "";
         let pendingAlertPeerId = "";
         let pendingAlertName = "";
@@ -309,7 +308,7 @@
             const errorTxt = document.getElementById("auth-error-msg");
 
             if (!phoneVal || (currentAuthTab === "signup" && !nameVal)) {
-                errorTxt.innerText = "Please complete all field tracks.";
+                errorTxt.innerText = "Please complete all fields.";
                 errorBox.classList.remove("hidden");
                 return;
             }
@@ -319,7 +318,7 @@
 
             if (cleanPhone === TEACHER_E164 && currentAuthTab === "login") {
                 if (passVal !== "Teacher123") {
-                    errorTxt.innerText = "Invalid security credential password for Jitendra Swain.";
+                    errorTxt.innerText = "Invalid credentials for Jitendra Swain.";
                     errorBox.classList.remove("hidden");
                     return;
                 }
@@ -390,7 +389,7 @@
 
                 const structuralKeys = Object.keys(uniqueStudentsMap);
                 if (structuralKeys.length === 0) {
-                    listWrapper.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs mt-6">Awaiting dynamic student synchronization channels...</div>`;
+                    listWrapper.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs mt-6">Awaiting student synchronization channels...</div>`;
                 } else {
                     structuralKeys.forEach(pNum => {
                         const sName = uniqueStudentsMap[pNum];
@@ -512,7 +511,7 @@
             selectedPeerID = peerKey;
             selectedName = nameKey;
 
-            // Clear unread indicator badge instantly for this selected room thread
+            // Clear unread indicator badge instantly
             if (unreadCounts[phoneKey]) {
                 unreadCounts[phoneKey] = 0;
                 localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
@@ -567,7 +566,6 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // Live Real-Time Ingestion and Notification Handler
         function ingestIncomingPayload(payload, senderPeerId) {
             const assignedThread = activeProfile.isTeacher ? payload.senderPhone : TEACHER_E164;
             const structured = { sender: "Them", threadOwner: assignedThread, senderName: payload.senderName, type: payload.type, content: payload.content, filename: payload.filename, filesize: payload.filesize, time: payload.time };
@@ -575,31 +573,26 @@
             globalHistory.push(structured);
             localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
 
-            // Live View Update Condition
             if (selectedPhone === assignedThread) {
                 outputBubble(structured);
                 document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
             } else {
-                // Increment and update unread message counter
                 if (!unreadCounts[assignedThread]) {
                     unreadCounts[assignedThread] = 0;
                 }
                 unreadCounts[assignedThread] += 1;
                 localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
 
-                // Dispatch notifications
                 triggerLiveNotificationSystem(structured, senderPeerId);
                 populateConversationsGrid();
             }
         }
 
-        // Core Notification Routing Protocol
         function triggerLiveNotificationSystem(msgObject, senderPeerId) {
             let excerptText = msgObject.content;
             if (msgObject.type === 'file') excerptText = `📄 Shared file: ${msgObject.filename}`;
             if (msgObject.type === 'voice') excerptText = `🎙️ Sent a Voice Note`;
 
-            // Case A: App is running in the background (or minimized tab) -> System Native Notification
             if (document.hidden) {
                 if ("Notification" in window && Notification.permission === "granted") {
                     const sysNotification = new Notification(`EduChat: ${msgObject.senderName}`, {
@@ -612,7 +605,6 @@
                     };
                 }
             } 
-            // Case B: App is open but user is focusing somewhere else -> Smooth In-App Toast Overlay
             else {
                 pendingAlertPhone = msgObject.threadOwner;
                 pendingAlertPeerId = senderPeerId;
@@ -628,7 +620,6 @@
                     notificationBanner.style.transform = "translateY(0)";
                 }, 50);
 
-                // Auto-dismiss the alert banner window cleanly after 4 seconds
                 setTimeout(() => {
                     dismissIncomingAlertBanner();
                 }, 4000);
@@ -751,7 +742,6 @@
             document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
         }
 
-        // Centralized Audio Node Player Handler
         function runAudioPipeline(dataUri, btnId) {
             const player = document.getElementById("audio-player-node");
             const btn = document.getElementById(btnId);
