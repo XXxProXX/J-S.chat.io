@@ -10,33 +10,71 @@
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .chat-bg {
-            background-color: #f0f2f5;
-            background-image: radial-gradient(#dfdfdf 1px, transparent 1px), radial-gradient(#dfdfdf 1px, #f0f2f5 1px);
-            background-size: 20px 20px;
-            background-position: 0 0, 10px 10px;
-        }
-        .dark .chat-bg {
-            background-color: #0b141a;
-            background-image: radial-gradient(#1c2c35 1px, transparent 1px), radial-gradient(#1c2c35 1px, #0b141a 1px);
-            background-size: 20px 20px;
-            background-position: 0 0, 10px 10px;
-        }
-        /* Custom scrollbar for iframe previews */
-        iframe::-webkit-scrollbar {
-            width: 4px;
-        }
-        iframe::-webkit-scrollbar-thumb {
-            background: #10b981;
-            border-radius: 10px;
-        }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .chat-bg { background-color: #f0f2f5; background-image: radial-gradient(#dfdfdf 1px, transparent 1px); background-size: 20px 20px; }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-950 transition-colors duration-300 h-[100dvh] w-screen overflow-hidden flex flex-col antialiased select-none">
+<body class="bg-gray-100 dark:bg-gray-950 h-[100dvh] w-screen overflow-hidden flex flex-col antialiased">
+
+    <script>
+        // --- PERSISTENCE ENGINE ---
+        function saveMessageToHistory(msg) {
+            let history = JSON.parse(localStorage.getItem("mob_chat_logs") || "[]");
+            history.push(msg);
+            localStorage.setItem("mob_chat_logs", JSON.stringify(history));
+            globalHistory = history; // Update global variable used by your UI
+        }
+
+        // --- UPDATED DISPATCH LOGIC ---
+        function dispatchOutgoingMessage() {
+            const input = document.getElementById("input-chat-message");
+            const content = input.value.trim();
+            if (!content) return;
+
+            const msg = {
+                threadOwner: selectedPhone,
+                content: content,
+                type: 'text',
+                timestamp: Date.now(),
+                senderName: activeProfile.name
+            };
+
+            // 1. ALWAYS save locally so it never disappears
+            saveMessageToHistory(msg);
+
+            // 2. Attempt P2P Send
+            if (p2pConnection && p2pConnection.open) {
+                p2pConnection.send(msg);
+            } else {
+                console.log("Teacher offline: Message saved locally only.");
+            }
+
+            input.value = "";
+            populateConversationsGrid(); // Refresh your UI
+            
+            // Auto-scroll logic
+            const container = document.getElementById("message-container");
+            if(container) container.scrollTop = container.scrollHeight;
+        }
+
+        // --- INITIALIZATION ---
+        // Ensure that when your app starts, it reloads the history from LocalStorage
+        const cachedHistory = localStorage.getItem("mob_chat_logs");
+        if (cachedHistory) {
+            globalHistory = JSON.parse(cachedHistory);
+        }
+
+        // --- ADD THIS TO YOUR PEERJS 'open' EVENT ---
+        // This ensures that when the teacher eventually connects, you could potentially
+        // re-send messages that were stored while they were offline.
+        peerInstance.on('connection', (conn) => {
+            p2pConnection = conn;
+            console.log("Teacher is back online!");
+            // You can add logic here to loop through local history and re-send missing messages
+        });
+        
+        // ... (Keep the rest of your original logic below)
+    </script>
 
     <!-- AUTHENTICATION SCREEN -->
     <div id="auth-screen" class="fixed inset-0 z-50 bg-gray-50 dark:bg-[#0b141a] flex flex-col p-6 overflow-y-auto justify-center">
