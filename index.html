@@ -1,1218 +1,1184 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>EduChat Mobile Portal</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>EduChat Mobile Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
 <style>
-body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-.chat-bg { background-color: #f0f2f5; background-image: radial-gradient(#dfdfdf 1px, transparent 1px); background-size: 20px 20px; }
+    body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .chat-bg { background-color: #f0f2f5; background-image: radial-gradient(#dfdfdf 1px, transparent 1px); background-size: 20px 20px; }
 </style>
+
 </head>
 <body class="bg-gray-100 dark:bg-gray-950 h-[100dvh] w-screen overflow-hidden flex flex-col antialiased">
 
 <script>
-/* ---------- Global Variables ---------- */
-const TEACHER_RAW = "8240330068";
-const TEACHER_E164 = "+91" + TEACHER_RAW;
-const TEACHER_PEER_HEX = "educhat-node-" + btoa("91" + TEACHER_RAW).replace(/=/g, "").toLowerCase();
+    // --- PERSISTENCE ENGINE ---
+    function saveMessageToHistory(msg) {
+        let history = JSON.parse(localStorage.getItem("mob_chat_logs") || "[]");
+        history.push(msg);
+        localStorage.setItem("mob_chat_logs", JSON.stringify(history));
+        globalHistory = history; // Update global variable used by your UI
+    }
 
-let currentAuthTab = "login";
-let activeProfile = null;
-let p2pConnection = null;
+    // --- UPDATED DISPATCH LOGIC ---
+    function dispatchOutgoingMessage() {
+        const input = document.getElementById("input-chat-message");
+        const content = input.value.trim();
+        if (!content) return;
 
-let selectedPhone = "";
-let selectedPeerID = "";
-let selectedName = "";
+        const msg = {
+            threadOwner: selectedPhone,
+            content: content,
+            type: 'text',
+            timestamp: Date.now(),
+            senderName: activeProfile.name
+        };
 
-let globalHistory = [];
-let globalBlocks = [];
-let registryList = [];
-let unreadCounts = {};
+        // 1. ALWAYS save locally so it never disappears
+        saveMessageToHistory(msg);
 
-let micRecorderObj = null;
-let capturedChunks = [];
-let timerTracker = null;
-let ticksCounter = 0;
-let globalAudioStreamRef = null;
-let queuedAttachedFile = null;
-
-let pendingQueue = JSON.parse(localStorage.getItem("mob_pending_queue") || "[]");
-let peerReconnectTimer = null;
-let peerInstance = null;
-let peerConnected = false;
-
-/* ---------- Utility Functions ---------- */
-function savePendingQueue() {
-    localStorage.setItem("mob_pending_queue", JSON.stringify(pendingQueue));
-}
-
-function scheduleReconnect() {
-    clearTimeout(peerReconnectTimer);
-    peerReconnectTimer = setTimeout(() => { connectPeer(); }, 3000);
-}
-
-// --- Save chat message to local storage ---
-function saveMessageToHistory(msg) {
-    let history = JSON.parse(localStorage.getItem("mob_chat_logs") || "[]");
-    history.push(msg);
-    localStorage.setItem("mob_chat_logs", JSON.stringify(history));
-    globalHistory = history; // sync global
-}
-
-// --- UI Updates ---
-function appendSingleMessageUI(msg) {
-    const container = document.getElementById("message-container");
-    const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const isMe = msg.senderPhone === activeProfile.phone;
-
-    const bubbleWrap = document.createElement("div");
-    bubbleWrap.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'} animate-fade-in`;
-
-    let innerHTML = "";
-    if (msg.type === "file") {
-        if (msg.content.startsWith("data:image/")) {
-            innerHTML = `
-                <div class="relative max-w-xs rounded-xl overflow-hidden cursor-pointer group" onclick="openInAppMediaViewer('${msg.content}', 'image', '${msg.filename}')">
-                    <img src="${msg.content}" class="max-w-full max-h-56 object-cover rounded-xl transition-all group-hover:brightness-90" />
-                    <div class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span class="bg-black/60 text-white rounded-full p-2 text-xs"><i class="fa-solid fa-expand"></i> View</span>
-                    </div>
-                </div>`;
-        } else if (msg.content.startsWith("data:video/")) {
-            innerHTML = `
-                <div class="relative max-w-xs rounded-xl overflow-hidden cursor-pointer group" onclick="openInAppMediaViewer('${msg.content}', 'video', '${msg.filename}')">
-                    <video src="${msg.content}" class="max-w-full max-h-56 object-cover rounded-xl"></video>
-                    <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <span class="bg-emerald-600/90 text-white rounded-full w-10 h-10 flex items-center justify-center shadow"><i class="fa-solid fa-play text-xs"></i></span>
-                    </div>
-                </div>`;
+        // 2. Attempt P2P Send
+        if (p2pConnection && p2pConnection.open) {
+            p2pConnection.send(msg);
         } else {
-            innerHTML = `
-                <div onclick="openInAppMediaViewer('${msg.content}', 'document', '${msg.filename}')" class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-[#111b21]/70 hover:bg-gray-100 dark:hover:bg-[#111b21] rounded-xl cursor-pointer border border-gray-100 dark:border-transparent transition-all">
-                    <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-950/40 rounded-lg flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-file-pdf text-indigo-500 text-lg"></i>
-                    </div>
-                    <div class="truncate max-w-[150px]">
-                        <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">${msg.filename}</h4>
-                        <span class="text-[9px] text-gray-400 font-mono">${msg.filesize}</span>
-                    </div>
-                    <i class="fa-solid fa-eye text-gray-400 text-xs shrink-0 pl-1"></i>
-                </div>`;
+            console.log("Teacher offline: Message saved locally only.");
         }
-    } else if (msg.type === "voice") {
-        innerHTML = `
-            <div class="flex items-center space-x-2.5 py-1">
-                <button onclick="playAudioBlobNode('${msg.content}', this)" class="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md transition-all"><i class="fa-solid fa-play text-xs"></i></button>
-                <div class="w-32 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden relative">
-                    <div class="bg-emerald-500 h-full w-0 progress-fill-bar"></div>
-                </div>
-                <span class="text-[10px] text-gray-400 font-mono">Audio</span>
-            </div>`;
-    } else {
-        innerHTML = `<p class="text-xs leading-relaxed break-words">${escapeHtml(msg.content)}</p>`;
+
+        input.value = "";
+        populateConversationsGrid(); // Refresh your UI
+        
+        // Auto-scroll logic
+        const container = document.getElementById("message-container");
+        if(container) container.scrollTop = container.scrollHeight;
     }
 
-    bubbleWrap.innerHTML = innerHTML;
-    container.appendChild(bubbleWrap);
-}
-
-function scrollToChatBottom() {
-    const container = document.getElementById("message-container");
-    setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
-}
-
-// --- Media viewer ---
-function openInAppMediaViewer(dataUrl, type, filename) {
-    const lightbox = document.getElementById("media-lightbox");
-    const container = document.getElementById("lightbox-payload-container");
-    const title = document.getElementById("lightbox-title");
-    title.innerText = filename || "Internal Media Preview";
-    container.innerHTML = "";
-
-    if (type === "image") {
-        const img = document.createElement("img");
-        img.src = dataUrl;
-        img.className = "max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl animate-zoom-in";
-        container.appendChild(img);
-    } else if (type === "video") {
-        const video = document.createElement("video");
-        video.src = dataUrl;
-        video.controls = true;
-        video.autoplay = true;
-        video.className = "max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl";
-        container.appendChild(video);
-    } else if (type === "document") {
-        if (dataUrl.startsWith("data:application/pdf")) {
-            const iframe = document.createElement("iframe");
-            iframe.src = dataUrl;
-            iframe.className = "w-full h-[70vh] rounded-lg border-none bg-white";
-            container.appendChild(iframe);
-        } else if (dataUrl.startsWith("data:text/plain")) {
-            const rawText = atob(dataUrl.split(",")[1]);
-            const txtBox = document.createElement("div");
-            txtBox.className = "w-full h-[65vh] bg-gray-900 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-y-auto select-text whitespace-pre-wrap";
-            txtBox.innerText = rawText;
-            container.appendChild(txtBox);
-        } else {
-            // Fallback
-            container.innerHTML = `<div class="text-center text-white space-y-3 p-6 max-w-xs bg-white/5 rounded-2xl backdrop-blur">
-                <span class="text-4xl">📂</span>
-                <h4 class="text-sm font-semibold">${filename}</h4>
-                <p class="text-[10px] text-gray-400">Office format files must be opened on system applications. Press down to export manually.</p>
-                <a href="${dataUrl}" download="${filename}" class="inline-block mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold">Export Offline File</a>
-            </div>`;
-        }
-    }
-    lightbox.classList.remove("hidden");
-}
-
-function closeInAppMediaViewer() {
-    document.getElementById("media-lightbox").classList.add("hidden");
-    document.getElementById("lightbox-payload-container").innerHTML = "";
-}
-
-function playAudioBlobNode(audioDataUrl, playBtn) {
-    const player = document.getElementById("audio-player-node");
-    const progress = playBtn.nextElementSibling.querySelector(".progress-fill-bar");
-
-    if (player.src === audioDataUrl && !player.paused) {
-        player.pause();
-        playBtn.innerHTML = `<i class="fa-solid fa-play text-xs pl-0.5"></i>`;
-        return;
-    }
-
-    document.querySelectorAll(".progress-fill-bar").forEach(el => el.style.width = '0%');
-    document.querySelectorAll("button i.fa-pause").forEach(icon => {
-        icon.className = "fa-solid fa-play text-xs pl-0.5";
-    });
-
-    player.src = audioDataUrl;
-    player.play();
-    playBtn.innerHTML = `<i class="fa-solid fa-pause text-xs"></i>`;
-
-    player.ontimeupdate = () => {
-        const pct = (player.currentTime / player.duration) * 100;
-        progress.style.width = `${pct}%`;
-    };
-    player.onended = () => {
-        progress.style.width = '0%';
-        playBtn.innerHTML = `<i class="fa-solid fa-play text-xs pl-0.5"></i>`;
-    };
-}
-
-// --- Profile & Connection ---
-function loadSelectedChatMessages() {
-    const container = document.getElementById("message-container");
-    container.innerHTML = "";
-    const msgs = globalHistory.filter(m => m.threadOwner === selectedPhone);
-    if (msgs.length === 0) {
-        container.innerHTML = `
-        <div class="my-auto mx-auto text-center max-w-xs p-6 bg-white/70 dark:bg-[#1e2a30]/50 rounded-2xl backdrop-blur">
-            <span class="text-3xl">🛡️</span>
-            <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200 mt-2">End-to-End Encrypted Tunnel</h4>
-            <p class="text-[10px] text-gray-400 mt-1">This channel links directly to your peer's node. Media files and document assets open inside your sandbox without clogging system downloads.</p>
-        </div>`;
-    } else {
-        msgs.forEach(msg => appendSingleMessageUI(msg));
-    }
-    scrollToChatBottom();
-}
-
-function connectPeer() {
-    if (!selectedPeerID || (p2pConnection && p2pConnection.open)) return;
-    try {
-        p2pConnection = peerInstance.connect(selectedPeerID, { reliable: true });
-        p2pConnection.on("open", () => {
-            peerConnected = true;
-            document.getElementById("node-status").innerText = "🌐 Connection Node Pipeline Operational";
-            document.getElementById("node-status").className = "text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
-            // Resync if needed
-        });
-        p2pConnection.on("close", () => { peerConnected = false; });
-        p2pConnection.on("error", () => { peerConnected = false; });
-    } catch (e) {
-        scheduleReconnect();
-    }
-}
-
-// --- PeerJS Setup ---
-function setupPeer() {
-    if (peerInstance) peerInstance.destroy();
-    peerInstance = new Peer(activeProfile.peerId, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
-    peerInstance.on('open', () => {
-        document.getElementById("node-status").innerText = "🌐 Connection Node Pipeline Operational";
-        document.getElementById("node-status").className = "text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
-
-        if (!activeProfile.isTeacher) {
-            setTimeout(() => {
-                const conn = peerInstance.connect(TEACHER_PEER_HEX, { reliable: true });
-                conn.on('open', () => {
-                    conn.send({ type: "sync_request", senderPhone: activeProfile.phone });
-                });
-                conn.on('data', (payload) => {
-                    if (payload.type === "sync_response") {
-                        ingestSyncHistory(payload.history);
-                    }
-                });
-            }, 1000);
-        }
-    });
-    peerInstance.on('connection', (conn) => {
-        if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) {
-            setTimeout(() => conn.close(), 200);
-            return;
-        }
-        p2pConnection = conn;
-        conn.on('data', (payload) => {
-            if (activeProfile.isTeacher && globalBlocks.includes(p2pConnection.peer)) return;
-            if (payload.type === "sync_request") {
-                handleSyncRequest(conn, payload.senderPhone);
-            } else if (payload.type === "sync_response") {
-                ingestSyncHistory(payload.history);
-            } else {
-                ingestIncomingPayload(payload, conn.peer);
-            }
-        });
-    });
-}
-
-// --- Sync & Payload Handling ---
-function handleSyncRequest(conn, senderPhone) {
-    const historySubset = globalHistory.filter(m => m.threadOwner === senderPhone);
-    conn.send({ type: "sync_response", history: historySubset });
-}
-
-function ingestSyncHistory(syncHistory) {
-    syncHistory.forEach(item => {
-        const exists = globalHistory.some(m => m.timestamp === item.timestamp && m.content === item.content);
-        if (!exists) globalHistory.push(item);
-    });
-    globalHistory.sort((a, b) => a.timestamp - b.timestamp);
-    localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
-    populateConversationsGrid();
-    if (selectedPhone !== "") loadSelectedChatMessages();
-}
-
-function ingestIncomingPayload(payload, remotePeerId) {
-    const targetThread = activeProfile.isTeacher ? payload.senderPhone : TEACHER_E164;
-    const messageEnvelope = {
-        senderPhone: payload.senderPhone,
-        senderName: payload.senderName,
-        threadOwner: targetThread,
-        content: payload.content,
-        type: payload.type || 'text',
-        filename: payload.filename || '',
-        filesize: payload.filesize || '',
-        timestamp: payload.timestamp || Date.now()
-    };
-    globalHistory.push(messageEnvelope);
-    localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
-    if (selectedPhone === targetThread) {
-        appendSingleMessageUI(messageEnvelope);
-        scrollToChatBottom();
-    } else {
-        unreadCounts[targetThread] = (unreadCounts[targetThread] || 0) + 1;
-        localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
-        triggerDeviceBannerAlert(messageEnvelope, targetThread, remotePeerId);
-    }
-    populateConversationsGrid();
-}
-
-// --- Alert Banner ---
-function triggerDeviceBannerAlert(env, threadKey, peerId) {
-    window.pendingAlertPhone = threadKey;
-    window.pendingAlertPeerId = peerId;
-    window.pendingAlertName = env.senderName;
-
-    let textBody = env.content;
-    if (env.type === 'file') {
-        textBody = env.content.startsWith('data:image/') ? "📸 Sent a Photo" :
-            env.content.startsWith('data:video/') ? "🎥 Sent a Video" : "📄 Sent a document";
-    } else if (env.type === 'voice') {
-        textBody = "🎙️ Voice Note";
-    }
-
-    document.getElementById("alert-sender-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/10b981/ffffff?text=S" : "https://placehold.co/100x100/3b82f6/ffffff?text=JS";
-    document.getElementById("alert-sender-name").innerText = env.senderName;
-    document.getElementById("alert-sender-body").innerText = textBody;
-
-    const banner = document.getElementById("live-message-alert");
-    banner.classList.remove("hidden");
-    setTimeout(() => { banner.classList.remove("-translate-y-20"); }, 50);
-
-    if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(env.senderName, { body: textBody, icon: "https://placehold.co/100x100/10b981/ffffff?text=E" });
-    }
-
-    setTimeout(() => { dismissIncomingAlertBanner(); }, 6000);
-}
-
-function dismissIncomingAlertBanner() {
-    const banner = document.getElementById("live-message-alert");
-    banner.classList.add("-translate-y-20");
-    setTimeout(() => { banner.classList.add("hidden"); }, 300);
-}
-
-function jumpToIncomingAlertChannel() {
-    dismissIncomingAlertBanner();
-    if (window.pendingAlertPhone !== "") {
-        launchMobileThread(window.pendingAlertPhone, window.pendingAlertPeerId, window.pendingAlertName);
-    }
-}
-
-// --- Main Functions ---
-function launchMobileThread(phone, peerId, name) {
-    selectedPhone = phone;
-    selectedPeerID = peerId;
-    selectedName = name;
-
-    // Reset unread count
-    unreadCounts[phone] = 0;
-    localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
-
-    populateConversationsGrid();
-
-    document.getElementById("active-partner-avatar").src = (phone === TEACHER_E164) ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
-    document.getElementById("active-partner-name").innerText = name;
-    const pStatus = document.getElementById("active-partner-status");
-    pStatus.innerText = "Verifying link...";
-    pStatus.className = "text-[10px] text-gray-500";
-
-    if (activeProfile.isTeacher) {
-        document.getElementById("teacher-moderator-controls").classList.remove("hidden");
-        const blockBtn = document.getElementById("block-icon-ui");
-        if (globalBlocks.includes(peerId)) {
-            blockBtn.className = "p-2 text-red-500 text-xs";
-            pStatus.innerText = "Blocked from sending content";
-        } else {
-            blockBtn.className = "p-2 text-gray-500 dark:text-gray-300 text-xs";
-            checkDirectP2PLinkStatus();
-        }
-    } else {
-        document.getElementById("teacher-moderator-controls").classList.add("hidden");
-        checkDirectP2PLinkStatus();
-    }
-
-    loadSelectedChatMessages();
-
-    const win = document.getElementById("view-chat-window");
-    win.classList.remove("translate-x-full");
-
-    connectPeer();
-}
-
-function checkDirectP2PLinkStatus() {
-    const pStatus = document.getElementById("active-partner-status");
-    if (!peerInstance) {
-        pStatus.innerText = "Offline";
-        return;
-    }
-    pStatus.innerText = "Attempting Handshake...";
-    const conn = peerInstance.connect(selectedPeerID, { reliable: true });
-    conn.on('open', () => {
-        pStatus.innerText = "Online - Secure Link Active";
-        pStatus.className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-bold";
-    });
-    conn.on('error', () => {
-        pStatus.innerText = "Offline - Host unreachable";
-        pStatus.className = "text-[10px] text-gray-400";
-    });
-    setTimeout(() => {
-        if (pStatus.innerText === "Attempting Handshake..." || pStatus.innerText === "Verifying link...") {
-            pStatus.innerText = "Host dormant (Messages sync on next start)";
-            pStatus.className = "text-[10px] text-amber-600 dark:text-amber-400 font-medium";
-        }
-    }, 3000);
-}
-
-// --- Load profile and initialize ---
-window.onload = function() {
-    const cachedUser = localStorage.getItem("mob_active_profile");
+    // --- INITIALIZATION ---
+    // Ensure that when your app starts, it reloads the history from LocalStorage
     const cachedHistory = localStorage.getItem("mob_chat_logs");
-    const cachedBlocks = localStorage.getItem("mob_blocked_nodes");
-    const cachedRegistry = localStorage.getItem("mob_registered_students");
-    const cachedUnreads = localStorage.getItem("mob_unread_counts");
-
-    if (cachedHistory) globalHistory = JSON.parse(cachedHistory);
-    if (cachedBlocks) globalBlocks = JSON.parse(cachedBlocks);
-    if (cachedRegistry) registryList = JSON.parse(cachedRegistry);
-    if (cachedUnreads) unreadCounts = JSON.parse(cachedUnreads);
-
-    if (cachedUser) {
-        activeProfile = JSON.parse(cachedUser);
-        document.getElementById("auth-screen").classList.add("hidden");
-        requestSystemNotificationPermissions();
-        spinUpApplication();
-    } else {
-        document.getElementById("auth-screen").classList.remove("hidden");
-        switchAuthTab("login");
+    if (cachedHistory) {
+        globalHistory = JSON.parse(cachedHistory);
     }
 
-    // Resize viewport hack
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-            document.getElementById("view-chat-window").style.height = window.visualViewport.height + 'px';
-            if (selectedPhone !== "") {
-                document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
-            }
-        });
-    }
-};
+    // --- ADD THIS TO YOUR PEERJS 'open' EVENT ---
+    // This ensures that when the teacher eventually connects, you could potentially
+    // re-send messages that were stored while they were offline.
+    peerInstance.on('connection', (conn) => {
+        p2pConnection = conn;
+        console.log("Teacher is back online!");
+        // You can add logic here to loop through local history and re-send missing messages
+    });
+    
+    // ... (Keep the rest of your original logic below)
+</script>
 
-/* --- Notification Permissions --- */
-function requestSystemNotificationPermissions() {
-    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-        Notification.requestPermission();
-    }
-}
+<!-- AUTHENTICATION SCREEN -->
+<div id="auth-screen" class="fixed inset-0 z-50 bg-gray-50 dark:bg-[#0b141a] flex flex-col p-6 overflow-y-auto justify-center">
+    <div class="max-w-md w-full mx-auto bg-white dark:bg-[#1f2c34] rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-[#2a3942] flex flex-col gap-5">
+        <div class="text-center">
+            <span class="text-4xl">🎓</span>
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mt-2">EduChat Mobile</h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Mobile Classroom Network Connection</p>
+        </div>
 
-/* --- Authentication UI ---
-- switchAuthTab, handleAuthSubmit, saveProfileAndLaunch
-- These handle login/signup UI and profile setup
-- They are unchanged from your code, just make sure they call spinUpApplication() after success
-*/
+        <div class="flex border-b border-gray-200 dark:border-[#2a3942] p-0.5 bg-gray-100 dark:bg-[#111b21] rounded-lg">
+            <button onclick="switchAuthTab('login')" id="tab-login" class="flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm">Log In</button>
+            <button onclick="switchAuthTab('signup')" id="tab-signup" class="flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400">Sign Up</button>
+        </div>
+        
+        <div class="space-y-4">
+            <div id="auth-name-wrapper" class="hidden">
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Full Name</label>
+                <input type="text" id="auth-name-input" placeholder="e.g. Alex Rivera" class="w-full bg-gray-100 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Phone Number</label>
+                <input type="tel" id="auth-phone-input" oninput="checkForTeacherPhone(this)" placeholder="e.g. 8240330068" class="w-full bg-gray-100 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono">
+            </div>
+            <div id="teacher-password-wrapper" class="hidden">
+                <label class="block text-xs font-semibold text-red-500 dark:text-red-400 mb-1">Teacher Security Password</label>
+                <input type="password" id="auth-teacher-pass" placeholder="Enter Teacher Credentials Key" class="w-full bg-gray-100 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-red-300 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+            </div>
+        </div>
 
-function switchAuthTab(targetTab) {
-    currentAuthTab = targetTab;
-    const lBtn = document.getElementById("tab-login");
-    const sBtn = document.getElementById("tab-signup");
-    const nameField = document.getElementById("auth-name-wrapper");
-    const passWrapper = document.getElementById("teacher-password-wrapper");
-    if (targetTab === "login") {
-        lBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm";
-        sBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400";
-        nameField.classList.add("hidden");
-        checkForTeacherPhone(document.getElementById("auth-phone-input"));
-    } else {
-        sBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm";
-        lBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400";
-        nameField.classList.remove("hidden");
-        passWrapper.classList.add("hidden");
-    }
-    document.getElementById("auth-error-box").classList.add("hidden");
-}
+        <div id="auth-error-box" class="hidden p-3 rounded-xl text-xs bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-transparent flex items-start space-x-2">
+            <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+            <span id="auth-error-msg"></span>
+        </div>
 
-function handleAuthSubmit() {
-    const nameVal = document.getElementById("auth-name-input").value.trim();
-    const phoneVal = document.getElementById("auth-phone-input").value.trim();
-    const passVal = document.getElementById("auth-teacher-pass").value.trim();
-    const errorBox = document.getElementById("auth-error-box");
-    const errorTxt = document.getElementById("auth-error-msg");
+        <button onclick="handleAuthSubmit()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.99] transition-all">Continue to Hub</button>
+    </div>
+</div>
 
-    if (!phoneVal || (currentAuthTab === "signup" && !nameVal)) {
-        errorTxt.innerText = "Please complete all fields.";
-        errorBox.classList.remove("hidden");
-        return;
-    }
+<!-- MAIN VIEWPORT CONTAINER -->
+<div class="flex-1 flex w-full h-full relative overflow-hidden">
+    
+    <!-- SIDEBAR VIEW -->
+    <div id="view-sidebar" class="w-full h-full flex flex-col bg-white dark:bg-[#111b21] z-10">
+        <div class="bg-gray-50 dark:bg-[#202c33] px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-transparent shrink-0">
+            <div class="flex items-center space-x-3">
+                <img id="my-avatar" src="https://placehold.co/100x100/10b981/ffffff?text=U" class="w-9 h-9 rounded-full object-cover border border-emerald-500">
+                <div>
+                    <h2 class="font-bold text-gray-800 dark:text-gray-100 text-sm truncate max-w-[140px]" id="my-name-display">---</h2>
+                    <span class="text-[10px] text-gray-500 dark:text-emerald-400 font-medium" id="my-role-badge">Student Channel</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-1.5">
+                <button onclick="toggleDarkMode()" class="p-2 text-gray-600 dark:text-gray-300 rounded-full text-sm"><i class="fa-solid fa-circle-half-stroke"></i></button>
+                <button onclick="logoutUser()" class="p-2 text-red-500 rounded-full text-sm"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </div>
 
-    const clean = cleanPhoneInput(phoneVal);
-    const digitsOnly = clean.replace("+", "");
+        <div class="bg-blue-50 dark:bg-[#182229] p-3 border-b border-blue-100 dark:border-transparent flex items-center space-x-2 shrink-0">
+            <i class="fa-solid fa-tower-broadcast text-blue-600 dark:text-blue-400 text-xs"></i>
+            <span id="node-status" class="text-[11px] font-medium text-blue-800 dark:text-blue-300">Connecting local instance...</span>
+        </div>
 
-    if (clean === TEACHER_E164 && currentAuthTab === "login") {
-        if (passVal !== "Teacher123") {
-            errorTxt.innerText = "Invalid credentials for Jitendra Swain.";
-            errorBox.classList.remove("hidden");
-            return;
-        }
-        activeProfile = { name: "Jitendra Swain", phone: TEACHER_E164, peerId: TEACHER_PEER_HEX, isTeacher: true };
-        requestSystemNotificationPermissions();
-        saveProfileAndLaunch();
-        return;
-    }
+        <div class="flex-1 overflow-y-auto" id="chat-list-container"></div>
+    </div>
 
-    if (currentAuthTab === "signup") {
-        if (clean === TEACHER_E164) {
-            errorTxt.innerText = "Teacher profiles must sign in via Log In tab.";
-            errorBox.classList.remove("hidden");
-            return;
-        }
-        const registered = registryList.some(s => s.phone === clean);
-        if (registered) {
-            errorTxt.innerText = "This node number is already registered. Choose Log In.";
-            errorBox.classList.remove("hidden");
-            return;
-        }
-        const newPeerId = "educhat-node-" + btoa(digitsOnly).replace(/=/g, "").toLowerCase();
-        const newStudent = { name: nameVal, phone: clean, peerId: newPeerId, isTeacher: false };
-        registryList.push(newStudent);
-        localStorage.setItem("mob_registered_students", JSON.stringify(registryList));
-        activeProfile = newStudent;
-        requestSystemNotificationPermissions();
-        saveProfileAndLaunch();
-    } else {
-        // Login flow
-        const student = registryList.find(s => s.phone === clean);
-        if (!student) {
-            const newPeerId = "educhat-node-" + btoa(digitsOnly).replace(/=/g, "").toLowerCase();
-            const implicitStudent = { name: "Student " + clean.slice(-4), phone: clean, peerId: newPeerId, isTeacher: false };
-            registryList.push(implicitStudent);
-            localStorage.setItem("mob_registered_students", JSON.stringify(registryList));
-            activeProfile = implicitStudent;
+    <!-- CHAT WINDOW VIEW -->
+    <div id="view-chat-window" class="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#efeae2] dark:bg-[#0b141a] chat-bg transform translate-x-full z-20 transition-transform duration-300 pb-[safe-area-inset-bottom]">
+        <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-2.5 flex items-center justify-between border-b border-gray-200 dark:border-transparent shrink-0">
+            <div class="flex items-center space-x-2 truncate">
+                <button onclick="navigateToSidebar()" class="p-2 -ml-1 text-gray-600 dark:text-gray-300 rounded-full text-sm">
+                    <i class="fa-solid fa-chevron-left text-base"></i>
+                </button>
+                <img id="active-partner-avatar" src="https://placehold.co/100x100/3b82f6/ffffff?text=JS" class="w-9 h-9 rounded-full object-cover shadow-sm">
+                <div class="truncate">
+                    <h3 class="font-semibold text-xs text-gray-800 dark:text-gray-100 truncate" id="active-partner-name">Teacher Portal</h3>
+                    <p class="text-[10px] text-gray-500 dark:text-gray-400" id="active-partner-status">Checking connection...</p>
+                </div>
+            </div>
+
+            <div id="teacher-moderator-controls" class="hidden flex items-center space-x-1">
+                <button onclick="clearCurrentChatLog()" class="p-2 text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
+                <button onclick="toggleBlockActiveStudent()" id="block-icon-ui" class="p-2 text-gray-500 dark:text-gray-300 text-xs"><i class="fa-solid fa-ban"></i></button>
+            </div>
+        </div>
+
+        <!-- CHAT DISPLAY WINDOW -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-2.5 flex flex-col shadow-inner" id="message-container"></div>
+
+        <div id="recording-panel" class="hidden bg-gray-50 dark:bg-[#202c33] py-3.5 px-4 flex items-center justify-between border-t border-gray-200 dark:border-transparent shrink-0">
+            <div class="flex items-center space-x-3">
+                <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                <span class="text-xs font-mono font-bold text-gray-700 dark:text-gray-200" id="recording-timer">00:00</span>
+                <span class="text-[11px] text-gray-500">Audio wave live...</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="discardVoiceNote()" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-xs">Cancel</button>
+                <button onclick="finalizeAndSendVoiceNote()" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs">Send</button>
+            </div>
+        </div>
+
+        <!-- FILE PREVIEW STRIP BEFORE SENDING -->
+        <div id="file-attachment-preview" class="hidden bg-gray-100 dark:bg-[#1f2c34] px-4 py-2 flex items-center justify-between border-t border-gray-200 dark:border-transparent shrink-0">
+            <div class="flex items-center space-x-3 truncate">
+                <span class="text-xl shrink-0" id="file-type-icon">📄</span>
+                <div class="truncate">
+                    <p class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate" id="file-label-name">file.pdf</p>
+                    <p class="text-[10px] text-gray-400 font-mono" id="file-label-size">0 KB</p>
+                </div>
+            </div>
+            <button onclick="dropQueuedFileAttachment()" class="p-1 text-gray-400 hover:text-red-500"><i class="fa-solid fa-circle-xmark"></i></button>
+        </div>
+
+        <!-- CHAT INPUT ZONE -->
+        <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-3 flex items-center space-x-2 border-t border-gray-200 dark:border-transparent shrink-0 w-full mb-[safe-area-inset-bottom]">
+            <div class="relative">
+                <button onclick="toggleMobileAttachmentOverlay()" class="p-2 text-gray-500 dark:text-gray-300 flex items-center justify-center"><i class="fa-solid fa-plus text-base"></i></button>
+                
+                <div id="mobile-attachment-box" class="hidden absolute bottom-14 left-0 bg-white dark:bg-[#233138] rounded-xl shadow-2xl p-1 border border-gray-200 dark:border-transparent w-40 z-50 flex flex-col">
+                    <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-[#374248] rounded-lg cursor-pointer text-gray-700 dark:text-gray-200 text-xs">
+                        <i class="fa-solid fa-file-pdf text-indigo-500 text-sm"></i>
+                        <span>Document</span>
+                        <input type="file" id="input-doc" onchange="processFileQueue(event, 'doc')" class="hidden" accept=".pdf,.doc,.docx,.txt">
+                    </label>
+                    <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-[#374248] rounded-lg cursor-pointer text-gray-700 dark:text-gray-200 text-xs">
+                        <i class="fa-solid fa-photo-film text-rose-500 text-sm"></i>
+                        <span>Media File</span>
+                        <input type="file" id="input-image" onchange="processFileQueue(event, 'media')" class="hidden" accept="image/*,video/*">
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex-1 bg-white dark:bg-[#2a3942] rounded-full px-4 py-1.5 flex items-center border border-gray-100 dark:border-[#374248]">
+                <input type="text" id="input-chat-message" onkeydown="catchInputEnter(event)" oninput="evaluateControlIcons()" placeholder="Type a message..." class="bg-transparent border-none text-sm w-full focus:outline-none text-gray-800 dark:text-gray-100">
+            </div>
+
+            <div class="shrink-0 flex items-center justify-center w-9 h-9">
+                <button onclick="triggerVoiceCapture()" id="action-mic-btn" class="p-2 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow w-8 h-8"><i class="fa-solid fa-microphone text-xs"></i></button>
+                <button onclick="dispatchOutgoingMessage()" id="action-send-btn" class="hidden p-2 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow w-8 h-8"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- INSTAGRAM STYLE IN-APP LIGHTBOX VIEWER (NO DOWNLOAD REQUIRED) -->
+<div id="media-lightbox" class="fixed inset-0 bg-black/95 backdrop-blur-md z-50 hidden flex flex-col justify-between p-4 transition-all duration-300">
+    <div class="flex items-center justify-between w-full">
+        <span id="lightbox-title" class="text-white text-xs font-medium truncate max-w-[70%]">In-App Media File</span>
+        <button onclick="closeInAppMediaViewer()" class="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all">
+            <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+    </div>
+    
+    <div class="flex-1 flex items-center justify-center w-full max-h-[80vh] overflow-hidden my-4" id="lightbox-payload-container">
+        <!-- Dynamic elements (img, video, or iframe) will render here inside the app -->
+    </div>
+
+    <div class="text-center w-full pb-4">
+        <p id="lightbox-caption" class="text-gray-400 text-[10px] font-mono">Loaded in active memory sandbox</p>
+    </div>
+</div>
+
+<!-- NOTIFICATION ALERTS & TOASTS -->
+<div id="live-message-alert" onclick="jumpToIncomingAlertChannel()" class="fixed top-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 hidden bg-white dark:bg-[#233138] border border-gray-200 dark:border-transparent p-3.5 rounded-xl shadow-2xl flex items-center space-x-3 transform -translate-y-20 transition-transform duration-300 cursor-pointer active:scale-95">
+    <img id="alert-sender-avatar" src="https://placehold.co/100x100/10b981/ffffff?text=S" class="w-9 h-9 rounded-full object-cover">
+    <div class="flex-1 truncate">
+        <h4 class="text-xs font-bold text-gray-800 dark:text-gray-100 truncate" id="alert-sender-name">New Message</h4>
+        <p class="text-[11px] text-gray-500 dark:text-gray-300 truncate mt-0.5" id="alert-sender-body">💬 Text body content</p>
+    </div>
+    <i class="fa-solid fa-chevron-right text-gray-400 text-xs pl-1"></i>
+</div>
+
+<div id="mobile-toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-40 hidden bg-gray-900 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center space-x-2 text-xs transition-all duration-200">
+    <i id="toast-icon-box" class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toast-text-box">Success</span>
+</div>
+
+<audio id="audio-player-node" class="hidden"></audio>
+
+<script>
+    const TEACHER_RAW = "8240330068";
+    const TEACHER_E164 = "+91" + TEACHER_RAW;
+    const TEACHER_PEER_HEX = "educhat-node-" + btoa("91" + TEACHER_RAW).replace(/=/g, "").toLowerCase();
+
+    let currentAuthTab = "login";
+    let activeProfile = null;
+    let peerInstance = null;
+    let p2pConnection = null;
+
+    let selectedPhone = "";
+    let selectedPeerID = "";
+    let selectedName = "";
+
+    let globalHistory = [];
+    let globalBlocks = [];
+    let registryList = []; 
+    let unreadCounts = {}; 
+
+    let micRecorderObj = null;
+    let capturedChunks = [];
+    let timerTracker = null;
+    let ticksCounter = 0;
+    let globalAudioStreamRef = null;
+    let queuedAttachedFile = null;
+
+    let pendingAlertPhone = "";
+    let pendingAlertPeerId = "";
+    let pendingAlertName = "";
+
+    window.onload = function() {
+        const cachedUser = localStorage.getItem("mob_active_profile");
+        const cachedHistory = localStorage.getItem("mob_chat_logs");
+        const cachedBlocks = localStorage.getItem("mob_blocked_nodes");
+        const cachedRegistry = localStorage.getItem("mob_registered_students");
+        const cachedUnreads = localStorage.getItem("mob_unread_counts");
+
+        if (cachedHistory) globalHistory = JSON.parse(cachedHistory);
+        if (cachedBlocks) globalBlocks = JSON.parse(cachedBlocks);
+        if (cachedRegistry) registryList = JSON.parse(cachedRegistry);
+        if (cachedUnreads) unreadCounts = JSON.parse(cachedUnreads);
+
+        if (cachedUser) {
+            activeProfile = JSON.parse(cachedUser);
+            document.getElementById("auth-screen").classList.add("hidden");
+            requestSystemNotificationPermissions();
+            spinUpApplication();
         } else {
-            activeProfile = student;
+            document.getElementById("auth-screen").classList.remove("hidden");
+            switchAuthTab("login");
         }
-        requestSystemNotificationPermissions();
-        saveProfileAndLaunch();
-    }
-}
 
-function saveProfileAndLaunch() {
-    localStorage.setItem("mob_active_profile", JSON.stringify(activeProfile));
-    document.getElementById("auth-screen").classList.add("hidden");
-    spinUpApplication();
-}
-
-function spinUpApplication() {
-    document.getElementById("my-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
-    document.getElementById("my-name-display").innerText = activeProfile.name;
-    document.getElementById("my-role-badge").innerText = activeProfile.isTeacher ? "Teacher Module" : "Student Module";
-
-    populateConversationsGrid();
-    mountPeerNodePipelines();
-}
-
-function cleanPhoneInput(raw) {
-    let digits = raw.replace(/[\s\(\)\-+]/g, "");
-    if (digits.length === 10) digits = "91" + digits;
-    return "+" + digits;
-}
-
-// --- Populate Conversations ---
-function populateConversationsGrid() {
-    const listWrapper = document.getElementById("chat-list-container");
-    listWrapper.innerHTML = "";
-
-    if (activeProfile.isTeacher) {
-        const uniqueStudentsMap = {};
-        globalHistory.forEach(m => { if (m.threadOwner && m.threadOwner !== TEACHER_E164) uniqueStudentsMap[m.threadOwner] = m.senderName || "Student Log"; });
-        registryList.forEach(s => { uniqueStudentsMap[s.phone] = s.name; });
-        const keys = Object.keys(uniqueStudentsMap);
-
-        if (keys.length === 0) {
-            listWrapper.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs mt-6">Awaiting student synchronization channels...</div>`;
-        } else {
-            keys.forEach(pNum => {
-                const sName = uniqueStudentsMap[pNum];
-                const subset = globalHistory.filter(m => m.threadOwner === pNum);
-                const lastMsg = subset[subset.length - 1];
-                let lastString = "Tap to open chat room";
-                if (lastMsg) {
-                    if (lastMsg.type === 'file') {
-                        if (lastMsg.content.startsWith('data:image/')) lastString = "📸 Photo preview";
-                        else if (lastMsg.content.startsWith('data:video/')) lastString = "🎥 Video clip";
-                        else lastString = `📄 ${lastMsg.filename}`;
-                    } else if (lastMsg.type === 'voice') {
-                        lastString = '🎙️ Voice Note';
-                    } else {
-                        lastString = lastMsg.content;
-                    }
+        // Keyboard Viewport Adjustment Hack for mobile browsers
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                document.getElementById("view-chat-window").style.height = window.visualViewport.height + 'px';
+                if (selectedPhone !== "") {
+                    document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
                 }
-                const peerTarget = "educhat-node-" + btoa(pNum.replace("+", "")).replace(/=/g, "").toLowerCase();
-                const blocked = globalBlocks.includes(peerTarget);
-                const unreadCount = unreadCounts[pNum] || 0;
+            });
+        }
+    };
 
-                listWrapper.innerHTML += `
-                <div onclick="launchMobileThread('${pNum}', '${peerTarget}', '${sName}')" class="p-4 flex items-center justify-between border-b border-gray-100 dark:border-[#222d34] active:bg-gray-50 dark:active:bg-[#1f2c34] cursor-pointer">
+    function requestSystemNotificationPermissions() {
+        if ("Notification" in window) {
+            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+        }
+    }
+
+    function switchAuthTab(targetTab) {
+        currentAuthTab = targetTab;
+        const lBtn = document.getElementById("tab-login");
+        const sBtn = document.getElementById("tab-signup");
+        const nameField = document.getElementById("auth-name-wrapper");
+        const passWrapper = document.getElementById("teacher-password-wrapper");
+
+        if (targetTab === "login") {
+            lBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm";
+            sBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400";
+            nameField.classList.add("hidden");
+            checkForTeacherPhone(document.getElementById("auth-phone-input"));
+        } else {
+            sBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm";
+            lBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400";
+            nameField.classList.remove("hidden");
+            passWrapper.classList.add("hidden"); 
+        }
+        document.getElementById("auth-error-box").classList.add("hidden");
+    }
+
+    function checkForTeacherPhone(el) {
+        if (currentAuthTab !== "login") return;
+        const clean = cleanPhoneInput(el.value);
+        const wrapper = document.getElementById("teacher-password-wrapper");
+        if (clean === TEACHER_E164) {
+            wrapper.classList.remove("hidden");
+        } else {
+            wrapper.classList.add("hidden");
+        }
+    }
+
+    function cleanPhoneInput(raw) {
+        let digits = raw.replace(/[\s\(\)\-+]/g, "");
+        if (digits.length === 10) digits = "91" + digits;
+        return "+" + digits;
+    }
+
+    function handleAuthSubmit() {
+        const nameVal = document.getElementById("auth-name-input").value.trim();
+        const phoneVal = document.getElementById("auth-phone-input").value.trim();
+        const passVal = document.getElementById("auth-teacher-pass").value.trim();
+        const errorBox = document.getElementById("auth-error-box");
+        const errorTxt = document.getElementById("auth-error-msg");
+
+        if (!phoneVal || (currentAuthTab === "signup" && !nameVal)) {
+            errorTxt.innerText = "Please complete all fields.";
+            errorBox.classList.remove("hidden");
+            return;
+        }
+
+        const cleanPhone = cleanPhoneInput(phoneVal);
+        const digitsOnly = cleanPhone.replace("+", "");
+
+        if (cleanPhone === TEACHER_E164 && currentAuthTab === "login") {
+            if (passVal !== "Teacher123") {
+                errorTxt.innerText = "Invalid credentials for Jitendra Swain.";
+                errorBox.classList.remove("hidden");
+                return;
+            }
+            activeProfile = { name: "Jitendra Swain", phone: TEACHER_E164, peerId: TEACHER_PEER_HEX, isTeacher: true };
+            requestSystemNotificationPermissions();
+            saveProfileAndLaunch();
+            return;
+        }
+
+        if (currentAuthTab === "signup") {
+            if (cleanPhone === TEACHER_E164) {
+                errorTxt.innerText = "Teacher profiles must sign in via Log In tab.";
+                errorBox.classList.remove("hidden");
+                return;
+            }
+            const registered = registryList.some(s => s.phone === cleanPhone);
+            if (registered) {
+                errorTxt.innerText = "This node number is already registered. Choose Log In.";
+                errorBox.classList.remove("hidden");
+                return;
+            }
+            const newPeerId = "educhat-node-" + btoa(digitsOnly).replace(/=/g, "").toLowerCase();
+            const freshStudent = { name: nameVal, phone: cleanPhone, peerId: newPeerId, isTeacher: false };
+            
+            registryList.push(freshStudent);
+            localStorage.setItem("mob_registered_students", JSON.stringify(registryList));
+            activeProfile = freshStudent;
+            requestSystemNotificationPermissions();
+            saveProfileAndLaunch();
+        } else {
+            const student = registryList.find(s => s.phone === cleanPhone);
+            if (!student) {
+                const newPeerId = "educhat-node-" + btoa(digitsOnly).replace(/=/g, "").toLowerCase();
+                const implicitStudent = { name: "Student " + cleanPhone.slice(-4), phone: cleanPhone, peerId: newPeerId, isTeacher: false };
+                registryList.push(implicitStudent);
+                localStorage.setItem("mob_registered_students", JSON.stringify(registryList));
+                activeProfile = implicitStudent;
+            } else {
+                activeProfile = student;
+            }
+            requestSystemNotificationPermissions();
+            saveProfileAndLaunch();
+        }
+    }
+
+    function saveProfileAndLaunch() {
+        localStorage.setItem("mob_active_profile", JSON.stringify(activeProfile));
+        document.getElementById("auth-screen").classList.add("hidden");
+        spinUpApplication();
+    }
+
+    function spinUpApplication() {
+        document.getElementById("my-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
+        document.getElementById("my-name-display").innerText = activeProfile.name;
+        document.getElementById("my-role-badge").innerText = activeProfile.isTeacher ? "Teacher Module" : "Student Module";
+        populateConversationsGrid();
+        mountPeerNodePipelines();
+    }
+
+    function populateConversationsGrid() {
+        const listWrapper = document.getElementById("chat-list-container");
+        listWrapper.innerHTML = "";
+
+        if (activeProfile.isTeacher) {
+            const uniqueStudentsMap = {};
+            globalHistory.forEach(m => { if (m.threadOwner && m.threadOwner !== TEACHER_E164) uniqueStudentsMap[m.threadOwner] = m.senderName || "Student Log"; });
+            registryList.forEach(s => { uniqueStudentsMap[s.phone] = s.name; });
+
+            const structuralKeys = Object.keys(uniqueStudentsMap);
+            if (structuralKeys.length === 0) {
+                listWrapper.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs mt-6">Awaiting student synchronization channels...</div>`;
+            } else {
+                structuralKeys.forEach(pNum => {
+                    const sName = uniqueStudentsMap[pNum];
+                    const subset = globalHistory.filter(m => m.threadOwner === pNum);
+                    const lastMsg = subset[subset.length - 1];
+                    let lastString = "Tap to open chat room";
+                    if (lastMsg) {
+                        if (lastMsg.type === 'file') {
+                            if (lastMsg.content && lastMsg.content.startsWith('data:image/')) lastString = "📸 Photo preview";
+                            else if (lastMsg.content && lastMsg.content.startsWith('data:video/')) lastString = "🎥 Video clip";
+                            else lastString = `📄 ${lastMsg.filename}`;
+                        } else if (lastMsg.type === 'voice') {
+                            lastString = '🎙️ Voice Note';
+                        } else {
+                            lastString = lastMsg.content;
+                        }
+                    }
+                    const peerTarget = "educhat-node-" + btoa(pNum.replace("+", "")).replace(/=/g, "").toLowerCase();
+                    const blocked = globalBlocks.includes(peerTarget);
+                    const unreadCount = unreadCounts[pNum] || 0;
+
+                    listWrapper.innerHTML += `
+                        <div onclick="launchMobileThread('${pNum}', '${peerTarget}', '${sName}')" class="p-4 flex items-center justify-between border-b border-gray-100 dark:border-[#222d34] active:bg-gray-50 dark:active:bg-[#1f2c34] cursor-pointer">
+                            <div class="flex items-center space-x-3 truncate">
+                                <div class="relative shrink-0">
+                                    <img src="https://placehold.co/100x100/10b981/ffffff?text=S" class="w-10 h-10 rounded-full object-cover shadow-sm">
+                                    ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-md animate-pulse">${unreadCount}</span>` : ''}
+                                </div>
+                                <div class="truncate">
+                                    <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-100 flex items-center ${unreadCount > 0 ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''}">${sName} ${blocked ? '<span class="text-[9px] bg-red-100 text-red-700 font-bold px-1 rounded ml-1">BLOCKED</span>':''}</h4>
+                                    <p class="text-[11px] ${unreadCount > 0 ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-400'} truncate mt-0.5">${escapeHtml(lastString)}</p>
+                                </div>
+                            </div>
+                            <span class="text-[9px] text-gray-400 font-mono shrink-0">${pNum}</span>
+                        </div>`;
+                });
+            }
+        } else {
+            const subset = globalHistory.filter(m => m.threadOwner === TEACHER_E164);
+            const lastMsg = subset[subset.length - 1];
+            let lastString = "Tap to connect with your instructor";
+            if (lastMsg) {
+                if (lastMsg.type === 'file') {
+                    if (lastMsg.content && lastMsg.content.startsWith('data:image/')) lastString = "📸 Photo preview";
+                    else if (lastMsg.content && lastMsg.content.startsWith('data:video/')) lastString = "🎥 Video clip";
+                    else lastString = `📄 ${lastMsg.filename}`;
+                } else if (lastMsg.type === 'voice') {
+                    lastString = '🎙️ Voice Note';
+                } else {
+                    lastString = lastMsg.content;
+                }
+            }
+            const unreadCount = unreadCounts[TEACHER_E164] || 0;
+
+            listWrapper.innerHTML = `
+                <div onclick="launchMobileThread('${TEACHER_E164}', '${TEACHER_PEER_HEX}', 'Jitendra Swain')" class="p-4 flex items-center justify-between border-b border-gray-100 dark:border-[#222d34] active:bg-gray-50 dark:active:bg-[#1f2c34] cursor-pointer">
                     <div class="flex items-center space-x-3 truncate">
                         <div class="relative shrink-0">
-                            <img src="https://placehold.co/100x100/10b981/ffffff?text=S" class="w-10 h-10 rounded-full object-cover shadow-sm" />
-                            ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-md animate-pulse">${unreadCount}</span>` : ""}
+                            <img src="https://placehold.co/100x100/3b82f6/ffffff?text=JS" class="w-10 h-10 rounded-full object-cover shadow-sm">
+                            ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-md animate-pulse">${unreadCount}</span>` : ''}
                         </div>
                         <div class="truncate">
-                            <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-100 flex items-center ${unreadCount > 0 ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''}">${sName} ${blocked ? '<span class="text-[9px] bg-red-100 text-red-700 font-bold px-1 rounded ml-1">BLOCKED</span>' : ''}</h4>
+                            <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-100 flex items-center ${unreadCount > 0 ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''}">Jitendra Swain <span class="text-[9px] bg-blue-100 text-blue-800 rounded px-1.5 py-0.5 ml-1 font-bold">INSTRUCTOR</span></h4>
                             <p class="text-[11px] ${unreadCount > 0 ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-400'} truncate mt-0.5">${escapeHtml(lastString)}</p>
                         </div>
                     </div>
-                    <span class="text-[9px] text-gray-400 font-mono">${pNum}</span>
+                    <span class="text-[9px] text-gray-400 font-mono shrink-0">${TEACHER_E164}</span>
                 </div>`;
+        }
+    }
+
+    function mountPeerNodePipelines() {
+        if (peerInstance) peerInstance.destroy();
+        peerInstance = new Peer(activeProfile.peerId, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+        
+        peerInstance.on('open', () => {
+            document.getElementById("node-status").innerText = "🌐 Connection Node Pipeline Operational";
+            document.getElementById("node-status").className = "text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
+            
+            if (!activeProfile.isTeacher) {
+                setTimeout(() => {
+                    const conn = peerInstance.connect(TEACHER_PEER_HEX, { reliable: true });
+                    conn.on('open', () => {
+                        conn.send({ type: "sync_request", senderPhone: activeProfile.phone });
+                    });
+                    conn.on('data', (payload) => {
+                        if (payload.type === "sync_response") {
+                            ingestSyncHistory(payload.history);
+                        }
+                    });
+                }, 1000);
+            }
+        });
+
+        peerInstance.on('connection', (conn) => {
+            if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) { setTimeout(() => conn.close(), 200); return; }
+            p2pConnection = conn;
+            p2pConnection.on('data', (payload) => {
+                if (activeProfile.isTeacher && globalBlocks.includes(p2pConnection.peer)) return;
+                
+                if (payload.type === "sync_request") {
+                    handleSyncRequest(conn, payload.senderPhone);
+                } else if (payload.type === "sync_response") {
+                    ingestSyncHistory(payload.history);
+                } else {
+                    ingestIncomingPayload(payload, conn.peer);
+                }
             });
-        }
-    } else {
-        // Student view
-        const subset = globalHistory.filter(m => m.threadOwner === TEACHER_E164);
-        const lastMsg = subset[subset.length - 1];
-        let lastString = "Tap to connect with your instructor";
-        if (lastMsg) {
-            if (lastMsg.type === 'file') {
-                if (lastMsg.content.startsWith('data:image/')) lastString = "📸 Photo preview";
-                else if (lastMsg.content.startsWith('data:video/')) lastString = "🎥 Video clip";
-                else lastString = `📄 ${lastMsg.filename}`;
-            } else if (lastMsg.type === 'voice') {
-                lastString = '🎙️ Voice Note';
-            } else {
-                lastString = lastMsg.content;
-            }
-        }
-        const unreadCount = unreadCounts[TEACHER_E164] || 0;
-        listWrapper.innerHTML = `
-        <div onclick="launchMobileThread('${TEACHER_E164}', '${TEACHER_PEER_HEX}', 'Jitendra Swain')" class="p-4 flex items-center justify-between border-b border-gray-100 dark:border-[#222d34] active:bg-gray-50 dark:active:bg-[#1f2c34] cursor-pointer">
-            <div class="flex items-center space-x-3 truncate">
-                <div class="relative shrink-0">
-                    <img src="https://placehold.co/100x100/3b82f6/ffffff?text=JS" class="w-10 h-10 rounded-full object-cover shadow-sm" />
-                    ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-md">${unreadCount}</span>` : ""}
-                </div>
-                <div class="truncate">
-                    <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-100 flex items-center ${unreadCount > 0 ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''}">Jitendra Swain <span class="text-[9px] bg-blue-100 text-blue-800 rounded px-1.5 py-0.5 ml-1 font-bold">INSTRUCTOR</span></h4>
-                    <p class="text-[11px] ${unreadCount > 0 ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-400'} truncate mt-0.5">${escapeHtml(lastString)}</p>
-                </div>
-            </div>
-            <span class="text-[9px] text-gray-400 font-mono">${TEACHER_E164}</span>
-        </div>`;
+        });
     }
-}
 
-/* --- Initiate Peer Connection ---
-call this after profile load and setup ---
-*/
-function mountPeerNodePipelines() {
-    if (peerInstance) peerInstance.destroy();
-    peerInstance = new Peer(activeProfile.peerId, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
-    peerInstance.on('open', () => {
-        document.getElementById("node-status").innerText = "🌐 Connection Node Pipeline Operational";
-        document.getElementById("node-status").className = "text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
+    function handleSyncRequest(conn, senderPhone) {
+        const relativeHistory = globalHistory.filter(m => m.threadOwner === senderPhone);
+        conn.send({ type: "sync_response", history: relativeHistory });
+    }
 
-        if (!activeProfile.isTeacher) {
-            setTimeout(() => {
-                const conn = peerInstance.connect(TEACHER_PEER_HEX, { reliable: true });
-                conn.on('open', () => {
-                    conn.send({ type: "sync_request", senderPhone: activeProfile.phone });
-                });
-                conn.on('data', (payload) => {
-                    if (payload.type === "sync_response") {
-                        ingestSyncHistory(payload.history);
-                    }
-                });
-            }, 1000);
-        }
-    });
-    peerInstance.on('connection', (conn) => {
-        if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) {
-            setTimeout(() => conn.close(), 200);
-            return;
-        }
-        p2pConnection = conn;
-        conn.on('data', (payload) => {
-            if (activeProfile.isTeacher && globalBlocks.includes(p2pConnection.peer)) return;
-            if (payload.type === "sync_request") {
-                handleSyncRequest(conn, payload.senderPhone);
-            } else if (payload.type === "sync_response") {
-                ingestSyncHistory(payload.history);
-            } else {
-                ingestIncomingPayload(payload, conn.peer);
+    function ingestSyncHistory(syncHistory) {
+        syncHistory.forEach(item => {
+            const exist = globalHistory.some(m => m.timestamp === item.timestamp && m.content === item.content);
+            if (!exist) {
+                globalHistory.push(item);
             }
         });
-    });
-}
-
-/* --- Send message reliable (queue) ---
-call this function to send messages reliably over P2P;
-*/
-function sendMessageReliable(msg) {
-    pendingQueue.push(msg);
-    savePendingQueue();
-    if (!p2pConnection || !p2pConnection.open) {
-        connectPeer();
-        return;
-    }
-    flushPendingQueue();
-}
-
-/* --- Flush pending message queue ---
-*/
-function flushPendingQueue() {
-    if (!p2pConnection || !p2pConnection.open) return;
-    while (pendingQueue.length > 0) {
-        const msg = pendingQueue[0];
-        try {
-            p2pConnection.send(msg);
-            pendingQueue.shift();
-        } catch (e) {
-            break; // stop on error
+        globalHistory.sort((a,b) => a.timestamp - b.timestamp);
+        localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+        populateConversationsGrid();
+        if (selectedPhone !== "") {
+            loadSelectedChatMessages();
         }
     }
-    savePendingQueue();
-}
 
-/* --- Connect to peer ---
-*/
-function connectPeer() {
-    if (!selectedPeerID || (p2pConnection && p2pConnection.open)) return;
-    try {
-        p2pConnection = peerInstance.connect(selectedPeerID, { reliable: true });
-        p2pConnection.on("open", () => {
-            peerConnected = true;
-            document.getElementById("node-status").innerText = "🌐 Connected";
-        });
-        p2pConnection.on("close", () => { peerConnected = false; });
-        p2pConnection.on("error", () => { peerConnected = false; });
-    } catch (e) {
-        scheduleReconnect();
-    }
-}
+    function ingestIncomingPayload(payload, remotePeerId) {
+        const associatedPhone = payload.senderPhone;
+        const targetThread = activeProfile.isTeacher ? associatedPhone : TEACHER_E164;
+        
+        const messageEnvelope = {
+            senderPhone: payload.senderPhone,
+            senderName: payload.senderName,
+            threadOwner: targetThread,
+            content: payload.content,
+            type: payload.type || 'text',
+            filename: payload.filename || '',
+            filesize: payload.filesize || '',
+            timestamp: payload.timestamp || Date.now()
+        };
 
-/* --- Initialize Peer connection ---
-*/
-function spinUpApplication() {
-    if (peerInstance) peerInstance.destroy();
-    peerInstance = new Peer(activeProfile.peerId, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
-    peerInstance.on('open', () => {
-        document.getElementById("node-status").innerText = "🌐 Connection Node Pipeline Operational";
-        document.getElementById("node-status").className = "text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
+        globalHistory.push(messageEnvelope);
+        localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
 
-        if (!activeProfile.isTeacher) {
-            setTimeout(() => {
-                const conn = peerInstance.connect(TEACHER_PEER_HEX, { reliable: true });
-                conn.on('open', () => {
-                    conn.send({ type: "sync_request", senderPhone: activeProfile.phone });
-                });
-                conn.on('data', (payload) => {
-                    if (payload.type === "sync_response") {
-                        ingestSyncHistory(payload.history);
-                    }
-                });
-            }, 1000);
-        }
-    });
-
-    peerInstance.on('connection', (conn) => {
-        if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) {
-            setTimeout(() => conn.close(), 200);
-            return;
-        }
-        p2pConnection = conn;
-        conn.on('data', (payload) => {
-            if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) return;
-            if (payload.type === "sync_request") {
-                handleSyncRequest(conn, payload.senderPhone);
-            } else if (payload.type === "sync_response") {
-                ingestSyncHistory(payload.history);
-            } else {
-                ingestIncomingPayload(payload, conn.peer);
-            }
-        });
-    });
-}
-
-// --- UI Event Handlers ---
-function launchMobileThread(phone, peerId, name) {
-    selectedPhone = phone;
-    selectedPeerID = peerId;
-    selectedName = name;
-
-    // Reset unread count
-    unreadCounts[phone] = 0;
-    localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
-
-    populateConversationsGrid();
-
-    document.getElementById("active-partner-avatar").src = (phone === TEACHER_E164) ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
-    document.getElementById("active-partner-name").innerText = name;
-    const pStatus = document.getElementById("active-partner-status");
-    pStatus.innerText = "Verifying link...";
-    pStatus.className = "text-[10px] text-gray-500";
-
-    if (activeProfile.isTeacher) {
-        document.getElementById("teacher-moderator-controls").classList.remove("hidden");
-        const blockBtn = document.getElementById("block-icon-ui");
-        if (globalBlocks.includes(peerId)) {
-            blockBtn.className = "p-2 text-red-500 text-xs";
-            pStatus.innerText = "Blocked from sending content";
+        if (selectedPhone === targetThread) {
+            appendSingleMessageUI(messageEnvelope);
+            scrollToChatBottom();
         } else {
-            blockBtn.className = "p-2 text-gray-500 dark:text-gray-300 text-xs";
+            unreadCounts[targetThread] = (unreadCounts[targetThread] || 0) + 1;
+            localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
+            triggerDeviceBannerAlert(messageEnvelope, targetThread, remotePeerId);
+        }
+        populateConversationsGrid();
+    }
+
+    function triggerDeviceBannerAlert(env, threadKey, peerId) {
+        pendingAlertPhone = threadKey;
+        pendingAlertPeerId = peerId;
+        pendingAlertName = env.senderName;
+
+        let textBody = env.content;
+        if (env.type === 'file') {
+            textBody = env.content.startsWith('data:image/') ? "📸 Sent a Photo" : "📄 Sent a document";
+        } else if (env.type === 'voice') {
+            textBody = "🎙️ Voice Note";
+        }
+
+        document.getElementById("alert-sender-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/10b981/ffffff?text=S" : "https://placehold.co/100x100/3b82f6/ffffff?text=JS";
+        document.getElementById("alert-sender-name").innerText = env.senderName;
+        document.getElementById("alert-sender-body").innerText = textBody;
+
+        const banner = document.getElementById("live-message-alert");
+        banner.classList.remove("hidden");
+        setTimeout(() => { banner.classList.remove("-translate-y-20"); }, 50);
+
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(env.senderName, { body: textBody, icon: "https://placehold.co/100x100/10b981/ffffff?text=E" });
+        }
+
+        setTimeout(() => { dismissIncomingAlertBanner(); }, 6000);
+    }
+
+    function dismissIncomingAlertBanner() {
+        const banner = document.getElementById("live-message-alert");
+        banner.classList.add("-translate-y-20");
+        setTimeout(() => { banner.classList.add("hidden"); }, 300);
+    }
+
+    function jumpToIncomingAlertChannel() {
+        dismissIncomingAlertBanner();
+        if (pendingAlertPhone !== "") {
+            launchMobileThread(pendingAlertPhone, pendingAlertPeerId, pendingAlertName);
+        }
+    }
+
+    function launchMobileThread(phone, peerId, name) {
+        selectedPhone = phone;
+        selectedPeerID = peerId;
+        selectedName = name;
+
+        unreadCounts[phone] = 0;
+        localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
+        populateConversationsGrid();
+
+        document.getElementById("active-partner-avatar").src = phone === TEACHER_E164 ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
+        document.getElementById("active-partner-name").innerText = name;
+        
+        const pStatus = document.getElementById("active-partner-status");
+        pStatus.innerText = "Verifying link...";
+        pStatus.className = "text-[10px] text-gray-500";
+
+        if (activeProfile.isTeacher) {
+            document.getElementById("teacher-moderator-controls").classList.remove("hidden");
+            const blockBtn = document.getElementById("block-icon-ui");
+            if (globalBlocks.includes(peerId)) {
+                blockBtn.className = "p-2 text-red-500 text-xs";
+                pStatus.innerText = "Blocked from sending content";
+            } else {
+                blockBtn.className = "p-2 text-gray-500 dark:text-gray-300 text-xs";
+                checkDirectP2PLinkStatus();
+            }
+        } else {
+            document.getElementById("teacher-moderator-controls").classList.add("hidden");
             checkDirectP2PLinkStatus();
         }
-    } else {
-        document.getElementById("teacher-moderator-controls").classList.add("hidden");
-        checkDirectP2PLinkStatus();
+
+        loadSelectedChatMessages();
+        
+        const win = document.getElementById("view-chat-window");
+        win.classList.remove("translate-x-full");
     }
 
-    loadSelectedChatMessages();
-
-    document.getElementById("view-chat-window").classList.remove("translate-x-full");
-    connectPeer();
-}
-
-// --- Check Peer Connection ---
-function checkDirectP2PLinkStatus() {
-    const pStatus = document.getElementById("active-partner-status");
-    if (!peerInstance) {
-        pStatus.innerText = "Offline";
-        return;
-    }
-    pStatus.innerText = "Attempting Handshake...";
-    const conn = peerInstance.connect(selectedPeerID, { reliable: true });
-    conn.on('open', () => {
-        pStatus.innerText = "Online - Secure Link Active";
-        pStatus.className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-bold";
-    });
-    conn.on('error', () => {
-        pStatus.innerText = "Offline - Host unreachable";
-        pStatus.className = "text-[10px] text-gray-400";
-    });
-    setTimeout(() => {
-        if (pStatus.innerText === "Attempting Handshake..." || pStatus.innerText === "Verifying link...") {
-            pStatus.innerText = "Host dormant (Messages sync on next start)";
-            pStatus.className = "text-[10px] text-amber-600 dark:text-amber-400 font-medium";
-        }
-    }, 3000);
-}
-
-// --- UI Event: Send Message ---
-function dispatchOutgoingMessage() {
-    const messageText = document.getElementById("input-chat-message").value.trim();
-    if (messageText === "" && !queuedAttachedFile) return;
-
-    let payload = {
-        senderPhone: activeProfile.phone,
-        senderName: activeProfile.name,
-        timestamp: Date.now(),
-        delivered: false
-    };
-
-    if (queuedAttachedFile) {
-        payload.type = "file";
-        payload.filename = queuedAttachedFile.filename;
-        payload.filesize = queuedAttachedFile.filesize;
-        payload.content = queuedAttachedFile.dataUrl;
-        dropQueuedFileAttachment();
-    } else {
-        payload.type = "text";
-        payload.content = messageText;
-        document.getElementById("input-chat-message").value = "";
-    }
-
-    const localEnvelope = { ...payload, threadOwner: selectedPhone };
-    globalHistory.push(localEnvelope);
-    localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
-    appendSingleMessageUI(localEnvelope);
-    scrollToChatBottom();
-    evaluateControlIcons();
-
-    if (peerInstance && selectedPeerID) {
-        const conn = peerInstance.connect(selectedPeerID, { reliable: true });
-        conn.on('open', () => {
-            conn.send(payload);
-        });
-    }
-
-    populateConversationsGrid();
-}
-
-// --- Voice Recording ---
-function triggerVoiceCapture() {
-    if (micRecorderObj && micRecorderObj.state === "recording") {
-        finalizeAndSendVoiceNote();
-        return;
-    }
-
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        globalAudioStreamRef = stream;
-        micRecorderObj = new MediaRecorder(stream);
-        capturedChunks = [];
-
-        micRecorderObj.ondataavailable = e => {
-            capturedChunks.push(e.data);
-        };
-
-        micRecorderObj.onstop = () => {
-            const audioBlob = new Blob(capturedChunks, { type: 'audio/mp3' });
-            const reader = new FileReader();
-            reader.readAsDataURL(audioBlob);
-            reader.onloadend = () => {
-                const base64Audio = reader.result;
-                const envelope = {
-                    senderPhone: activeProfile.phone,
-                    senderName: activeProfile.name,
-                    content: base64Audio,
-                    type: "voice",
-                    timestamp: Date.now()
-                };
-                const msgEnv = { ...envelope, threadOwner: selectedPhone };
-                globalHistory.push(msgEnv);
-                localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
-                appendSingleMessageUI(msgEnv);
-                scrollToChatBottom();
-
-                if (peerInstance && selectedPeerID) {
-                    const conn = peerInstance.connect(selectedPeerID, { reliable: true });
-                    conn.on('open', () => { conn.send(envelope); });
-                }
-                evaluateControlIcons();
-            };
-        };
-
-        micRecorderObj.start();
-        document.getElementById("recording-panel").classList.remove("hidden");
-        ticksCounter = 0;
-        document.getElementById("recording-timer").innerText = "00:00";
-        timerTracker = setInterval(() => {
-            ticksCounter++;
-            const m = String(Math.floor(ticksCounter / 60)).padStart(2, '0');
-            const s = String(ticksCounter % 60).padStart(2, '0');
-            document.getElementById("recording-timer").innerText = `${m}:${s}`;
-        }, 1000);
-    }).catch(() => {
-        invokeDeviceToast("Access to local Microphone refused", true);
-    });
-}
-
-function finalizeAndSendVoiceNote() {
-    if (micRecorderObj) {
-        micRecorderObj.stop();
-        micRecorderObj = null;
-    }
-    if (globalAudioStreamRef) {
-        globalAudioStreamRef.getTracks().forEach(t => t.stop());
-    }
-    clearInterval(timerTracker);
-    document.getElementById("recording-panel").classList.add("hidden");
-}
-
-function discardVoiceNote() {
-    if (micRecorderObj) {
-        micRecorderObj.onstop = null;
-        micRecorderObj.stop();
-        micRecorderObj = null;
-    }
-    if (globalAudioStreamRef) {
-        globalAudioStreamRef.getTracks().forEach(t => t.stop());
-    }
-    clearInterval(timerTracker);
-    document.getElementById("recording-panel").classList.add("hidden");
-    invokeDeviceToast("Recording deleted", false);
-}
-
-// --- File Upload ---
-function processFileQueue(event, type) {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (file.size > 15 * 1024 * 1024) {
-        invokeDeviceToast("Internal Pipe cap exceeded! (Max size 15MB)", true);
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-        queuedAttachedFile = {
-            filename: file.name,
-            filesize: formatBytesLabel(file.size),
-            dataUrl: reader.result
-        };
-
-        // Update preview
-        const preview = document.getElementById("file-attachment-preview");
-        preview.classList.remove("hidden");
-        document.getElementById("file-label-name").innerText = file.name;
-        document.getElementById("file-label-size").innerText = formatBytesLabel(file.size);
-
-        const icon = document.getElementById("file-type-icon");
-        if (file.type.startsWith("image/")) icon.innerText = "📸";
-        else if (file.type.startsWith("video/")) icon.innerText = "🎥";
-        else icon.innerText = "📄";
-
-        toggleMobileAttachmentOverlay();
-        evaluateControlIcons();
-    };
-}
-
-function formatBytesLabel(bytes) {
-    if (bytes < 1024) return bytes + " Bytes";
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-    else return (bytes / 1048576).toFixed(1) + " MB";
-}
-
-function dropQueuedFileAttachment() {
-    queuedAttachedFile = null;
-    document.getElementById("file-attachment-preview").classList.add("hidden");
-    document.getElementById("input-doc").value = "";
-    document.getElementById("input-image").value = "";
-    evaluateControlIcons();
-}
-
-// --- Input Handlers ---
-function catchInputEnter(e) {
-    if (e.key === "Enter") {
-        dispatchOutgoingMessage();
-    }
-}
-
-function evaluateControlIcons() {
-    const textVal = document.getElementById("input-chat-message").value.trim();
-    const micBtn = document.getElementById("action-mic-btn");
-    const sendBtn = document.getElementById("action-send-btn");
-    if (textVal !== "" || queuedAttachedFile !== null) {
-        micBtn.classList.add("hidden");
-        sendBtn.classList.remove("hidden");
-    } else {
-        sendBtn.classList.add("hidden");
-        micBtn.classList.remove("hidden");
-    }
-}
-
-// --- UI Buttons ---
-function toggleMobileAttachmentOverlay() {
-    document.getElementById("mobile-attachment-box").classList.toggle("hidden");
-}
-
-function toggleDarkMode() {
-    document.documentElement.classList.toggle("dark");
-}
-
-function logoutUser() {
-    if (!confirm("Log out from local profile? (All offline logs will persist)")) return;
-    localStorage.removeItem("mob_active_profile");
-    activeProfile = null;
-    if (peerInstance) {
-        peerInstance.destroy();
-        peerInstance = null;
-    }
-    document.getElementById("auth-screen").classList.remove("hidden");
-}
-
-function invokeDeviceToast(text, isAlert) {
-    const toast = document.getElementById("mobile-toast");
-    const box = document.getElementById("toast-text-box");
-    const icon = document.getElementById("toast-icon-box");
-    box.innerText = text;
-    if (isAlert) {
-        icon.className = "fa-solid fa-triangle-exclamation text-rose-500";
-    } else {
-        icon.className = "fa-solid fa-circle-check text-emerald-500";
-    }
-    toast.classList.remove("hidden");
-    setTimeout(() => { toast.classList.add("hidden"); }, 3000);
-}
-
-function escapeHtml(text) {
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-    return String(text).replace(/[&<>"']/g, m => map[m]);
-}
-
-/* --- Initialize everything ---
-*/
-function spinUpApplication() {
-    if (peerInstance) peerInstance.destroy();
-    peerInstance = new Peer(activeProfile.peerId, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
-    peerInstance.on('open', () => {
-        document.getElementById("node-status").innerText = "🌐 Connection Node Pipeline Operational";
-        document.getElementById("node-status").className = "text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
-
-        if (!activeProfile.isTeacher) {
-            setTimeout(() => {
-                const conn = peerInstance.connect(TEACHER_PEER_HEX, { reliable: true });
-                conn.on('open', () => {
-                    conn.send({ type: "sync_request", senderPhone: activeProfile.phone });
-                });
-                conn.on('data', (payload) => {
-                    if (payload.type === "sync_response") {
-                        ingestSyncHistory(payload.history);
-                    }
-                });
-            }, 1000);
-        }
-    });
-    // Peer connection event
-    peerInstance.on('connection', (conn) => {
-        if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) {
-            setTimeout(() => conn.close(), 200);
+    function checkDirectP2PLinkStatus() {
+        const pStatus = document.getElementById("active-partner-status");
+        if (!peerInstance) {
+            pStatus.innerText = "Offline";
             return;
         }
-        p2pConnection = conn;
-        conn.on('data', (payload) => {
-            if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) return;
-            if (payload.type === "sync_request") {
-                handleSyncRequest(conn, payload.senderPhone);
-            } else if (payload.type === "sync_response") {
-                ingestSyncHistory(payload.history);
-            } else {
-                ingestIncomingPayload(payload, conn.peer);
-            }
+        pStatus.innerText = "Attempting Handshake...";
+        
+        const conn = peerInstance.connect(selectedPeerID, { reliable: true });
+        conn.on('open', () => {
+            pStatus.innerText = "Online - Secure Link Active";
+            pStatus.className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-bold";
         });
-    });
-}
-
-// --- File Attachment ---
-function toggleMobileAttachmentOverlay() {
-    document.getElementById("mobile-attachment-box").classList.toggle("hidden");
-}
-
-function processFileQueue(event, type) {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (file.size > 15 * 1024 * 1024) {
-        invokeDeviceToast("Internal Pipe cap exceeded! (Max size 15MB)", true);
-        return;
+        conn.on('error', () => {
+            pStatus.innerText = "Offline - Host unreachable";
+            pStatus.className = "text-[10px] text-gray-400";
+        });
+        setTimeout(() => {
+            if (pStatus.innerText === "Attempting Handshake..." || pStatus.innerText === "Verifying link...") {
+                pStatus.innerText = "Host dormant (Messages sync on next start)";
+                pStatus.className = "text-[10px] text-amber-600 dark:text-amber-400 font-medium";
+            }
+        }, 3000);
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-        queuedAttachedFile = {
-            filename: file.name,
-            filesize: formatBytesLabel(file.size),
-            dataUrl: reader.result
+    function loadSelectedChatMessages() {
+        const mContainer = document.getElementById("message-container");
+        mContainer.innerHTML = "";
+        const matches = globalHistory.filter(m => m.threadOwner === selectedPhone);
+        
+        if (matches.length === 0) {
+            mContainer.innerHTML = `
+                <div class="my-auto mx-auto text-center max-w-xs p-6 bg-white/70 dark:bg-[#1e2a30]/50 rounded-2xl backdrop-blur">
+                    <span class="text-3xl">🛡️</span>
+                    <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200 mt-2">End-to-End Encrypted Tunnel</h4>
+                    <p class="text-[10px] text-gray-400 mt-1">This channel links directly to your peer's node. Media files and document assets open inside your sandbox without clogging system downloads.</p>
+                </div>`;
+        } else {
+            matches.forEach(msg => {
+                appendSingleMessageUI(msg);
+            });
+        }
+        scrollToChatBottom();
+    }
+
+    function appendSingleMessageUI(msg) {
+        const mContainer = document.getElementById("message-container");
+        const parsedTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const isMe = msg.senderPhone === activeProfile.phone;
+
+        const bubbleWrap = document.createElement("div");
+        bubbleWrap.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'} animate-fade-in`;
+
+        let innerPayloadMarkup = "";
+
+        if (msg.type === "file") {
+            if (msg.content.startsWith("data:image/")) {
+                // Instagram-Style Photo Frame: Direct in-app display without downloading to files!
+                innerPayloadMarkup = `
+                    <div class="relative max-w-xs rounded-xl overflow-hidden cursor-pointer group" onclick="openInAppMediaViewer('${msg.content}', 'image', '${msg.filename}')">
+                        <img src="${msg.content}" class="max-w-full max-h-56 object-cover rounded-xl transition-all group-hover:brightness-90">
+                        <div class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span class="bg-black/60 text-white rounded-full p-2 text-xs"><i class="fa-solid fa-expand"></i> View</span>
+                        </div>
+                    </div>`;
+            } else if (msg.content.startsWith("data:video/")) {
+                // Instagram-Style Video Frame: Playable straight inside chat window
+                innerPayloadMarkup = `
+                    <div class="relative max-w-xs rounded-xl overflow-hidden cursor-pointer group" onclick="openInAppMediaViewer('${msg.content}', 'video', '${msg.filename}')">
+                        <video src="${msg.content}" class="max-w-full max-h-56 object-cover rounded-xl"></video>
+                        <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <span class="bg-emerald-600/90 text-white rounded-full w-10 h-10 flex items-center justify-center shadow"><i class="fa-solid fa-play text-xs"></i></span>
+                        </div>
+                    </div>`;
+            } else {
+                // Document Preview Frame
+                innerPayloadMarkup = `
+                    <div onclick="openInAppMediaViewer('${msg.content}', 'document', '${msg.filename}')" class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-[#111b21]/70 hover:bg-gray-100 dark:hover:bg-[#111b21] rounded-xl cursor-pointer border border-gray-100 dark:border-transparent transition-all">
+                        <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-950/40 rounded-lg flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-file-pdf text-indigo-500 text-lg"></i>
+                        </div>
+                        <div class="truncate max-w-[150px]">
+                            <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">${msg.filename}</h4>
+                            <span class="text-[9px] text-gray-400 font-mono">${msg.filesize}</span>
+                        </div>
+                        <i class="fa-solid fa-eye text-gray-400 text-xs shrink-0 pl-1"></i>
+                    </div>`;
+            }
+        } else if (msg.type === "voice") {
+            innerPayloadMarkup = `
+                <div class="flex items-center space-x-2.5 py-1">
+                    <button onclick="playAudioBlobNode('${msg.content}', this)" class="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md transition-all shrink-0">
+                        <i class="fa-solid fa-play text-xs pl-0.5"></i>
+                    </button>
+                    <div class="w-32 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden relative">
+                        <div class="bg-emerald-500 h-full w-0 progress-fill-bar"></div>
+                    </div>
+                    <span class="text-[10px] text-gray-400 font-mono">Audio</span>
+                </div>`;
+        } else {
+            innerPayloadMarkup = `<p class="text-xs leading-relaxed break-words">${escapeHtml(msg.content)}</p>`;
+        }
+
+        bubbleWrap.innerHTML = `
+            <div class="max-w-[75%] rounded-2xl px-3 py-2 shadow-sm ${isMe ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white dark:bg-[#1f2c34] text-gray-800 dark:text-gray-100 rounded-tl-none'}">
+                ${!isMe && activeProfile.isTeacher ? `<p class="text-[9px] font-bold text-emerald-500 mb-1">${msg.senderName}</p>` : ''}
+                ${innerPayloadMarkup}
+                <span class="block text-[8px] mt-1 text-right ${isMe ? 'text-emerald-200' : 'text-gray-400'} font-mono">${parsedTime}</span>
+            </div>`;
+
+        mContainer.appendChild(bubbleWrap);
+    }
+
+    /* --- INSTAGRAM-STYLE INTERACTIVE LIGHTBOX SYSTEM --- */
+    function openInAppMediaViewer(dataUrl, type, filename) {
+        const lightbox = document.getElementById("media-lightbox");
+        const container = document.getElementById("lightbox-payload-container");
+        const title = document.getElementById("lightbox-title");
+        
+        title.innerText = filename || "Internal Media Preview";
+        container.innerHTML = ""; // Clear existing sandbox contents
+        
+        if (type === "image") {
+            const img = document.createElement("img");
+            img.src = dataUrl;
+            img.className = "max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl animate-zoom-in";
+            container.appendChild(img);
+        } 
+        else if (type === "video") {
+            const video = document.createElement("video");
+            video.src = dataUrl;
+            video.controls = true;
+            video.autoplay = true;
+            video.className = "max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl";
+            container.appendChild(video);
+        } 
+        else if (type === "document") {
+            // Documents preview safely without downloading
+            if (dataUrl.startsWith("data:application/pdf")) {
+                const iframe = document.createElement("iframe");
+                iframe.src = dataUrl;
+                iframe.className = "w-full h-[70vh] rounded-lg border-none bg-white";
+                container.appendChild(iframe);
+            } else if (dataUrl.startsWith("data:text/plain")) {
+                // Extract text content from the file url and render in box
+                const rawText = atob(dataUrl.split(",")[1]);
+                const txtBox = document.createElement("div");
+                txtBox.className = "w-full h-[65vh] bg-gray-900 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-y-auto select-text whitespace-pre-wrap";
+                txtBox.innerText = rawText;
+                container.appendChild(txtBox);
+            } else {
+                // Fallback visual message for unrenderable word docs
+                container.innerHTML = `
+                    <div class="text-center text-white space-y-3 p-6 max-w-xs bg-white/5 rounded-2xl backdrop-blur">
+                        <span class="text-4xl">📂</span>
+                        <h4 class="text-sm font-semibold">${filename}</h4>
+                        <p class="text-[10px] text-gray-400">Office format files must be opened on system applications. Press down to export manually.</p>
+                        <a href="${dataUrl}" download="${filename}" class="inline-block mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold">Export Offline File</a>
+                    </div>`;
+            }
+        }
+
+        lightbox.classList.remove("hidden");
+    }
+
+    function closeInAppMediaViewer() {
+        const lightbox = document.getElementById("media-lightbox");
+        const container = document.getElementById("lightbox-payload-container");
+        lightbox.classList.add("hidden");
+        container.innerHTML = ""; // Unloads and releases RAM completely
+    }
+
+    function playAudioBlobNode(audioDataUrl, playBtn) {
+        const player = document.getElementById("audio-player-node");
+        const progress = playBtn.nextElementSibling.firstElementChild;
+        
+        // Check if this audio is already playing
+        if (player.src === audioDataUrl && !player.paused) {
+            player.pause();
+            playBtn.innerHTML = `<i class="fa-solid fa-play text-xs pl-0.5"></i>`;
+            return;
+        }
+
+        // Reset any active players
+        document.querySelectorAll(".progress-fill-bar").forEach(el => el.style.width = '0%');
+        document.querySelectorAll("button i.fa-pause").forEach(icon => {
+            icon.className = "fa-solid fa-play text-xs pl-0.5";
+        });
+
+        player.src = audioDataUrl;
+        player.play();
+        playBtn.innerHTML = `<i class="fa-solid fa-pause text-xs"></i>`;
+
+        player.ontimeupdate = () => {
+            const pct = (player.currentTime / player.duration) * 100;
+            progress.style.width = `${pct}%`;
         };
-        // Update preview
-        const preview = document.getElementById("file-attachment-preview");
-        preview.classList.remove("hidden");
-        document.getElementById("file-label-name").innerText = file.name;
-        document.getElementById("file-label-size").innerText = formatBytesLabel(file.size);
-        const icon = document.getElementById("file-type-icon");
-        if (file.type.startsWith("image/")) icon.innerText = "📸";
-        else if (file.type.startsWith("video/")) icon.innerText = "🎥";
-        else icon.innerText = "📄";
 
-        toggleMobileAttachmentOverlay();
-        evaluateControlIcons();
-    };
-    reader.readAsDataURL(file);
-}
-
-function formatBytesLabel(bytes) {
-    if (bytes < 1024) return bytes + " Bytes";
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-    else return (bytes / 1048576).toFixed(1) + " MB";
-}
-
-function dropQueuedFileAttachment() {
-    queuedAttachedFile = null;
-    document.getElementById("file-attachment-preview").classList.add("hidden");
-    document.getElementById("input-doc").value = "";
-    document.getElementById("input-image").value = "";
-    evaluateControlIcons();
-}
-
-// --- Chat Input ---
-function catchInputEnter(e) {
-    if (e.key === "Enter") dispatchOutgoingMessage();
-}
-
-// --- UI Controls ---
-function toggleDarkMode() {
-    document.documentElement.classList.toggle("dark");
-}
-
-function logoutUser() {
-    if (!confirm("Log out from local profile? (All offline logs will persist)")) return;
-    localStorage.removeItem("mob_active_profile");
-    activeProfile = null;
-    if (peerInstance) {
-        peerInstance.destroy();
-        peerInstance = null;
+        player.onended = () => {
+            progress.style.width = '0%';
+            playBtn.innerHTML = `<i class="fa-solid fa-play text-xs pl-0.5"></i>`;
+        };
     }
-    document.getElementById("auth-screen").classList.remove("hidden");
-}
 
+    function navigateToSidebar() {
+        selectedPhone = "";
+        selectedPeerID = "";
+        selectedName = "";
+        const win = document.getElementById("view-chat-window");
+        win.classList.add("translate-x-full");
+        populateConversationsGrid();
+    }
+
+    function toggleMobileAttachmentOverlay() {
+        const box = document.getElementById("mobile-attachment-box");
+        box.classList.toggle("hidden");
+    }
+
+    function processFileQueue(event, type) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (file.size > 15 * 1024 * 1024) { // 15MB P2P Cap
+            invokeDeviceToast("Internal Pipe cap exceeded! (Max size 15MB)", true);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function() {
+            queuedAttachedFile = {
+                filename: file.name,
+                filesize: formatBytesLabel(file.size),
+                dataUrl: reader.result
+            };
+
+            const preview = document.getElementById("file-attachment-preview");
+            preview.classList.remove("hidden");
+            
+            document.getElementById("file-label-name").innerText = file.name;
+            document.getElementById("file-label-size").innerText = formatBytesLabel(file.size);
+            
+            const icon = document.getElementById("file-type-icon");
+            if (file.type.startsWith("image/")) icon.innerText = "📸";
+            else if (file.type.startsWith("video/")) icon.innerText = "🎥";
+            else icon.innerText = "📄";
+
+            toggleMobileAttachmentOverlay();
+            evaluateControlIcons();
+        };
+    }
+
+    function formatBytesLabel(bytes) {
+        if (bytes < 1024) return bytes + " Bytes";
+        else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+        else return (bytes / 1048576).toFixed(1) + " MB";
+    }
+
+    function dropQueuedFileAttachment() {
+        queuedAttachedFile = null;
+        document.getElementById("file-attachment-preview").classList.add("hidden");
+        document.getElementById("input-doc").value = "";
+        document.getElementById("input-image").value = "";
+        evaluateControlIcons();
+    }
+
+    function catchInputEnter(e) {
+        if (e.key === "Enter") {
+            dispatchOutgoingMessage();
+        }
+    }
+
+    function evaluateControlIcons() {
+        const textVal = document.getElementById("input-chat-message").value.trim();
+        const micBtn = document.getElementById("action-mic-btn");
+        const sendBtn = document.getElementById("action-send-btn");
+
+        if (textVal !== "" || queuedAttachedFile !== null) {
+            micBtn.classList.add("hidden");
+            sendBtn.classList.remove("hidden");
+        } else {
+            sendBtn.classList.add("hidden");
+            micBtn.classList.remove("hidden");
+        }
+    }
+
+    function dispatchOutgoingMessage() {
+        const textVal = document.getElementById("input-chat-message").value.trim();
+        if (textVal === "" && queuedAttachedFile === null) return;
+
+        let finalPayload = {};
+        
+        if (queuedAttachedFile !== null) {
+            finalPayload = {
+                senderPhone: activeProfile.phone,
+                senderName: activeProfile.name,
+                content: queuedAttachedFile.dataUrl,
+                type: "file",
+                filename: queuedAttachedFile.filename,
+                filesize: queuedAttachedFile.filesize,
+                timestamp: Date.now()
+            };
+            dropQueuedFileAttachment();
+        } else {
+            finalPayload = {
+                senderPhone: activeProfile.phone,
+                senderName: activeProfile.name,
+                content: textVal,
+                type: "text",
+                timestamp: Date.now()
+            };
+            document.getElementById("input-chat-message").value = "";
+        }
+
+        const localEnvelope = {
+            ...finalPayload,
+            threadOwner: selectedPhone
+        };
+
+        globalHistory.push(localEnvelope);
+        localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+        
+        appendSingleMessageUI(localEnvelope);
+        scrollToChatBottom();
+        evaluateControlIcons();
+
+        // P2P transmission
+        if (peerInstance) {
+            const conn = peerInstance.connect(selectedPeerID, { reliable: true });
+            conn.on('open', () => {
+                conn.send(finalPayload);
+            });
+        }
+        populateConversationsGrid();
+    }
+
+    function triggerVoiceCapture() {
+        if (micRecorderObj && micRecorderObj.state === "recording") {
+            finalizeAndSendVoiceNote();
+            return;
+        }
+
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            globalAudioStreamRef = stream;
+            micRecorderObj = new MediaRecorder(stream);
+            capturedChunks = [];
+            
+            micRecorderObj.ondataavailable = e => capturedChunks.push(e.data);
+            
+            micRecorderObj.onstop = () => {
+                const audioBlob = new Blob(capturedChunks, { type: 'audio/mp3' });
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                reader.onloadend = () => {
+                    const base64Audio = reader.result;
+                    
+                    const voicePayload = {
+                        senderPhone: activeProfile.phone,
+                        senderName: activeProfile.name,
+                        content: base64Audio,
+                        type: "voice",
+                        timestamp: Date.now()
+                    };
+
+                    const envelope = { ...voicePayload, threadOwner: selectedPhone };
+                    globalHistory.push(envelope);
+                    localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+                    
+                    appendSingleMessageUI(envelope);
+                    scrollToChatBottom();
+
+                    if (peerInstance) {
+                        const conn = peerInstance.connect(selectedPeerID, { reliable: true });
+                        conn.on('open', () => { conn.send(voicePayload); });
+                    }
+                    populateConversationsGrid();
+                };
+            };
+
+            micRecorderObj.start();
+            document.getElementById("recording-panel").classList.remove("hidden");
+            
+            ticksCounter = 0;
+            document.getElementById("recording-timer").innerText = "00:00";
+            timerTracker = setInterval(() => {
+                ticksCounter++;
+                const m = String(Math.floor(ticksCounter / 60)).padStart(2, '0');
+                const s = String(ticksCounter % 60).padStart(2, '0');
+                document.getElementById("recording-timer").innerText = `${m}:${s}`;
+            }, 1000);
+        }).catch(() => {
+            invokeDeviceToast("Access to local Microphone refused", true);
+        });
+    }
+
+    function finalizeAndSendVoiceNote() {
+        if (micRecorderObj) {
+            micRecorderObj.stop();
+            micRecorderObj = null;
+        }
+        if (globalAudioStreamRef) {
+            globalAudioStreamRef.getTracks().forEach(t => t.stop());
+        }
+        clearInterval(timerTracker);
+        document.getElementById("recording-panel").classList.add("hidden");
+    }
+
+    function discardVoiceNote() {
+        if (micRecorderObj) {
+            micRecorderObj.onstop = null; // Unbind recording execution
+            micRecorderObj.stop();
+            micRecorderObj = null;
+        }
+        if (globalAudioStreamRef) {
+            globalAudioStreamRef.getTracks().forEach(t => t.stop());
+        }
+        clearInterval(timerTracker);
+        document.getElementById("recording-panel").classList.add("hidden");
+        invokeDeviceToast("Recording deleted", false);
+    }
+
+    function scrollToChatBottom() {
+        const container = document.getElementById("message-container");
+        setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+    }
+
+    function clearCurrentChatLog() {
+        if (!confirm("Remove this thread history permanently?")) return;
+        globalHistory = globalHistory.filter(m => m.threadOwner !== selectedPhone);
+        localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+        loadSelectedChatMessages();
+        populateConversationsGrid();
+    }
+
+    function toggleBlockActiveStudent() {
+        const index = globalBlocks.indexOf(selectedPeerID);
+        const blockBtn = document.getElementById("block-icon-ui");
+        
+        if (index > -1) {
+            globalBlocks.splice(index, 1);
+            blockBtn.className = "p-2 text-gray-500 dark:text-gray-300 text-xs";
+            invokeDeviceToast("Student pipeline restored", false);
+        } else {
+            globalBlocks.push(selectedPeerID);
+            blockBtn.className = "p-2 text-red-500 text-xs";
+            invokeDeviceToast("Student pipeline frozen", true);
+        }
+        localStorage.setItem("mob_blocked_nodes", JSON.stringify(globalBlocks));
+        launchMobileThread(selectedPhone, selectedPeerID, selectedName);
+    }
+
+    function toggleDarkMode() {
+        document.documentElement.classList.toggle("dark");
+    }
+
+    function logoutUser() {
+        if (!confirm("Log out from local profile? (All offline logs will persist)")) return;
+        localStorage.removeItem("mob_active_profile");
+        activeProfile = null;
+        if (peerInstance) {
+            peerInstance.destroy();
+            peerInstance = null;
+        }
+        document.getElementById("auth-screen").classList.remove("hidden");
+    }
+
+    function invokeDeviceToast(text, isAlert) {
+        const toast = document.getElementById("mobile-toast");
+        const box = document.getElementById("toast-text-box");
+        const icon = document.getElementById("toast-icon-box");
+
+        box.innerText = text;
+        if (isAlert) {
+            icon.className = "fa-solid fa-triangle-exclamation text-rose-500";
+        } else {
+            icon.className = "fa-solid fa-circle-check text-emerald-500";
+        }
+
+        toast.classList.remove("hidden");
+        setTimeout(() => { toast.classList.add("hidden"); }, 3000);
+    }
+
+    function escapeHtml(text) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
 </script>
-
-<!-- Your HTML content remains unchanged, including the UI markup, input fields, buttons, etc. -->
-<!-- ... (rest of your HTML remains as it was) ... -->
 
 </body>
 </html>
