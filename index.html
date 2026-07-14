@@ -14,7 +14,8 @@
     body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
     .chat-bg { background-color: #f0f2f5; background-image: radial-gradient(#dfdfdf 1px, transparent 1px); background-size: 20px 20px; }
 </style>
-
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-950 h-[100dvh] w-screen overflow-hidden flex flex-col antialiased">
 
@@ -197,6 +198,14 @@
 <audio id="audio-player-node" class="hidden"></audio>
 
 <script>
+    // --- Firebase Setup ---
+const firebaseConfig = {
+    apiKey: "AIzaSyAUoxKxvJe-3Unxw4XxaUtaQO7kpG9-8j8",
+    databaseURL: "https://console.firebase.google.com/u/0/project/educhat-3137e",
+    projectId: "educhat-3137e"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
     const TEACHER_RAW = "8240330068";
     const TEACHER_E164 = "+91" + TEACHER_RAW;
     const TEACHER_PEER_HEX = "educhat-node-" + btoa("91" + TEACHER_RAW).replace(/=/g, "").toLowerCase();
@@ -384,12 +393,13 @@
     }
 
     function spinUpApplication() {
-        document.getElementById("my-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
-        document.getElementById("my-name-display").innerText = activeProfile.name;
-        document.getElementById("my-role-badge").innerText = activeProfile.isTeacher ? "Teacher Module" : "Student Module";
-        populateConversationsGrid();
-        mountPeerNodePipelines();
-    }
+    document.getElementById("my-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
+    document.getElementById("my-name-display").innerText = activeProfile.name;
+    document.getElementById("my-role-badge").innerText = activeProfile.isTeacher ? "Teacher Module" : "Student Module";
+    populateConversationsGrid();
+    mountPeerNodePipelines();
+    listenForFirebaseMessages(); // <-- ADD THIS LINE
+}
 
     function populateConversationsGrid() {
         const listWrapper = document.getElementById("chat-list-container");
@@ -561,11 +571,18 @@
     }
 
     function queueForDelivery(payload, peerId) {
-        payload.messageId = payload.messageId || messageId();
-        deliveryQueue.push({ peerId, payload });
-        saveDeliveryQueue();
-        attemptQueuedDeliveries();
+    payload.messageId = payload.messageId || messageId();
+    
+    // Attempt P2P first
+    const conn = liveConnections.get(peerId);
+    if (conn && conn.open) {
+        conn.send(payload);
+    } else {
+        // Fallback: Store in Firebase under the recipient's peerId
+        db.ref('queues/' + peerId + '/' + payload.messageId).set(payload);
+        invokeDeviceToast("Recipient offline. Message cached in cloud.", false);
     }
+}
 
     function connectToPeer(peerId, requestSync = false) {
         if (!peerInstance || peerInstance.destroyed || !peerId) return;
@@ -1319,6 +1336,18 @@
         const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
         return String(text).replace(/[&<>"']/g, m => map[m]);
     }
+    function listenForFirebaseMessages() {
+    if (!activeProfile) return;
+    const inboxRef = db.ref('queues/' + activeProfile.peerId);
+    
+    inboxRef.on('child_added', (snapshot) => {
+        const payload = snapshot.val();
+        if (payload) {
+            ingestIncomingPayload(payload, payload.senderPhone);
+            snapshot.ref.remove(); // Clean up cloud storage after receiving
+        }
+    });
+}
 </script>
 
 </body>
