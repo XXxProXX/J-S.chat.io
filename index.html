@@ -2,372 +2,885 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IncognitoChat // WhatsApp Mode</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EduChat Mobile Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- PeerJS for P2P -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    
     <style>
-        :root {
-            --bg-main: #0a0a0c;
-            --panel-bg: #121214;
-            --panel-card: #1a1a1e;
-            --border-color: #26262b;
-            --text-main: #f4f4f5;
-            --text-muted: #a1a1aa;
-            --accent-green: #10b981;
-            --accent-danger: #ef4444;
-            --bubble-me: #27272a;
-            --bubble-them: #1c1c1f;
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        body { background-color: var(--bg-main); color: var(--text-main); display: flex; justify-content: center; align-items: center; height: 100vh; }
-        
-        .app-window { width: 100%; max-width: 480px; height: 90vh; background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7); }
-        .nav-tabs { display: flex; border-bottom: 1px solid var(--border-color); background: #0d0d0f; flex-shrink: 0; }
-        .tab-btn { flex: 1; background: none; border: none; color: var(--text-muted); padding: 15px; font-weight: 600; cursor: pointer; font-size: 0.9rem; text-align: center; }
-        .tab-btn.active { color: var(--text-main); border-bottom: 2px solid var(--text-main); background: var(--panel-bg); }
-        
-        .tab-content { display: none; padding: 24px; flex-direction: column; gap: 20px; flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .tab-content.active { display: flex; }
-        .card { background: var(--panel-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; flex-shrink: 0; }
-        
-        h3 { font-size: 1rem; font-weight: 600; }
-        label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
-        input, select { background: #0d0d0f; border: 1px solid var(--border-color); color: var(--text-main); padding: 12px 16px; border-radius: 8px; outline: none; width: 100%; }
-        
-        .btn { background: var(--text-main); color: var(--bg-main); border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.95rem; text-align: center; }
-        .btn-secondary { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
-        .btn-danger { background: var(--accent-danger); color: white; }
-        
-        .share-box { background: #0d0d0f; padding: 16px; border-radius: 8px; border: 1px dashed var(--border-color); text-align: center; }
-        .code-display { font-family: monospace; font-size: 1.3rem; font-weight: 700; color: var(--accent-green); margin: 8px 0; }
-        
-        #chat-screen { display: none; height: 100%; flex-direction: column; }
-        .top-bar { padding: 16px 20px; background: #0d0d0f; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-        .messages-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #08080a; -webkit-overflow-scrolling: touch; }
-        
-        .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; }
-        .msg.me { align-self: flex-end; background-color: var(--bubble-me); border-bottom-right-radius: 2px; }
-        .msg.them { align-self: flex-start; background-color: var(--bubble-them); border-top-left-radius: 2px; border: 1px solid var(--border-color); }
-        .msg-time { font-size: 0.65rem; color: var(--text-muted); text-align: right; margin-top: 4px; }
-        .system-msg { text-align: center; color: var(--text-muted); font-size: 0.75rem; align-self: center; }
-        
-        .input-bar { padding: 16px; background: #0d0d0f; border-top: 1px solid var(--border-color); display: flex; gap: 10px; flex-shrink: 0; }
-        
-        /* WhatsApp Style Chat Items */
-        #chat-list { display: flex; flex-direction: column; gap: 10px; }
-        .chat-item { background: var(--panel-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
-        .chat-item:hover { background: #222227; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
-        .status-dot.online { background: var(--accent-green); }
+        .chat-bg {
+            background-color: #f0f2f5;
+            background-image: radial-gradient(#dfdfdf 1px, transparent 1px), radial-gradient(#dfdfdf 1px, #f0f2f5 1px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
+        .dark .chat-bg {
+            background-color: #0b141a;
+            background-image: radial-gradient(#1c2c35 1px, transparent 1px), radial-gradient(#1c2c35 1px, #0b141a 1px);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+        }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 dark:bg-gray-950 transition-colors duration-300 h-screen w-screen overflow-hidden flex flex-col antialiased select-none">
 
-    <div class="app-window">
-        <div id="setup-container" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
-            <div class="nav-tabs">
-                <div class="tab-btn active" onclick="switchTab('chats-tab')">Chats</div>
-                <div class="tab-btn" onclick="switchTab('new-room-tab')">New Thread</div>
+    <!-- Auth Gateway Overlay -->
+    <div id="auth-screen" class="fixed inset-0 z-50 bg-gray-50 dark:bg-[#0b141a] flex flex-col p-6 overflow-y-auto justify-center">
+        <div class="max-w-md w-full mx-auto bg-white dark:bg-[#1f2c34] rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-[#2a3942] flex flex-col gap-5">
+            <div class="text-center">
+                <span class="text-4xl">🎓</span>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mt-2">EduChat Mobile</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Mobile Classroom Network Connection</p>
             </div>
 
-            <div id="chats-tab" class="tab-content active">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
-                    <h3 style="color: var(--text-muted);">Active Threads</h3>
-                    <button class="btn btn-danger" style="padding:6px 12px; font-size:0.75rem" onclick="clearAllHistory()">Purge All</button>
-                </div>
-                <div id="chat-list"></div>
+            <!-- Tab Switchers -->
+            <div class="flex border-b border-gray-200 dark:border-[#2a3942] p-0.5 bg-gray-100 dark:bg-[#111b21] rounded-lg">
+                <button onclick="switchAuthTab('login')" id="tab-login" class="flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm">Log In</button>
+                <button onclick="switchAuthTab('signup')" id="tab-signup" class="flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400">Sign Up</button>
             </div>
-
-            <div id="new-room-tab" class="tab-content">
-                <div class="card">
-                    <h3>Create New Channel (Host)</h3>
-                    <div>
-                        <label>Retention Policy</label>
-                        <select id="chat-mode" style="margin-top:6px;">
-                            <option value="permanent">Persistent Room (Stays on Dashboard)</option>
-                            <option value="temporary">Ephemeral (One-time use)</option>
-                        </select>
-                    </div>
-                    <button class="btn" onclick="createNewHostRoom()">Generate Code</button>
-                    
-                    <div id="host-share-ui" class="share-box" style="display: none;">
-                        <label>Share Code with Partner</label>
-                        <div class="code-display" id="my-code-element">---</div>
-                    </div>
+            
+            <div class="space-y-4">
+                <!-- Name Field (Visible during Sign Up) -->
+                <div id="auth-name-wrapper" class="hidden">
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Full Name</label>
+                    <input type="text" id="auth-name-input" placeholder="e.g. Alex Rivera" class="w-full bg-gray-55 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
                 </div>
-
-                <div class="card">
-                    <h3>Join via Existing Code (Guest)</h3>
-                    <input type="text" id="target-code" placeholder="Enter room code token..." style="text-transform:uppercase;">
-                    <button class="btn btn-secondary" onclick="joinExistingRoom()">Add to Dashboard & Open</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="chat-screen">
-            <div class="top-bar">
                 <div>
-                    <span id="role-badge" style="font-weight: 600;">Secure Node</span>
-                    <div id="policy-badge" style="font-size:0.7rem; color: var(--text-muted)">Connecting...</div>
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Phone Number</label>
+                    <input type="tel" id="auth-phone-input" oninput="checkForTeacherPhone(this)" placeholder="e.g. 8240330068" class="w-full bg-gray-55 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono">
                 </div>
-                <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="closeActiveChatView()">Back</button>
+                <!-- Teacher Key Field (Conditionally triggered) -->
+                <div id="teacher-password-wrapper" class="hidden">
+                    <label class="block text-xs font-semibold text-red-500 dark:text-red-400 mb-1">Teacher Security Password</label>
+                    <input type="password" id="auth-teacher-pass" placeholder="Enter Teacher Credentials Key" class="w-full bg-gray-55 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-red-300 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 text-sm">
+                </div>
             </div>
-            <div class="messages-area" id="msg-box"></div>
-            <div class="input-bar">
-                <input type="text" id="chat-input" placeholder="Type message..." onkeypress="if(event.key==='Enter') sendPayload()">
-                <button class="btn" onclick="sendPayload()" style="width: 45px; padding:0;">➤</button>
-            </div>
-        </div>
 
+            <div id="auth-error-box" class="hidden p-3 rounded-xl text-xs bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-transparent flex items-start space-x-2">
+                <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+                <span id="auth-error-msg"></span>
+            </div>
+
+            <button onclick="handleAuthSubmit()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.99] transition-all">Continue to Hub</button>
+        </div>
     </div>
 
-    <script>
-        let peer = null;
-        let connection = null;
-        let myRole = null;
-        let chatMode = 'permanent';
-        let currentRoomId = null;
+    <!-- Main Mobile Stack UI -->
+    <div class="flex-1 flex w-full h-full relative overflow-hidden">
+        
+        <!-- View A: Chats Overview Sidebar -->
+        <div id="view-sidebar" class="w-full h-full flex flex-col bg-white dark:bg-[#111b21] z-10 transition-transform duration-300">
+            <div class="bg-gray-50 dark:bg-[#202c33] px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-transparent shrink-0">
+                <div class="flex items-center space-x-3">
+                    <img id="my-avatar" src="https://placehold.co/100x100/10b981/ffffff?text=U" class="w-9 h-9 rounded-full object-cover border border-emerald-500">
+                    <div>
+                        <h2 class="font-bold text-gray-800 dark:text-gray-100 text-sm truncate max-w-[140px]" id="my-name-display">---</h2>
+                        <span class="text-[10px] text-gray-500 dark:text-emerald-400 font-medium" id="my-role-badge">Student Channel</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="toggleDarkMode()" class="p-2 text-gray-600 dark:text-gray-300 rounded-full text-sm"><i class="fa-solid fa-circle-half-stroke"></i></button>
+                    <button onclick="logoutUser()" class="p-2 text-red-500 rounded-full text-sm"><i class="fa-solid fa-power-off"></i></button>
+                </div>
+            </div>
 
-        const peerConfig = {
-            debug: 1,
-            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+            <div class="bg-blue-50 dark:bg-[#182229] p-3 border-b border-blue-100 dark:border-transparent flex items-center space-x-2 shrink-0">
+                <i class="fa-solid fa-tower-broadcast text-blue-600 dark:text-blue-400 text-xs"></i>
+                <span id="node-status" class="text-[11px] font-medium text-blue-800 dark:text-blue-300">Connecting local instance...</span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto" id="chat-list-container">
+                <!-- Chat Cards go here -->
+            </div>
+        </div>
+
+        <!-- View B: Focused Chat Stream Screen -->
+        <div id="view-chat-window" class="absolute inset-0 w-full h-full flex flex-col bg-[#efeae2] dark:bg-[#0b141a] chat-bg transform translate-x-full z-20 transition-transform duration-300">
+            <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-2.5 flex items-center justify-between border-b border-gray-200 dark:border-transparent shrink-0">
+                <div class="flex items-center space-x-2 truncate">
+                    <button onclick="navigateToSidebar()" class="p-2 -ml-1 text-gray-600 dark:text-gray-300 rounded-full text-sm">
+                        <i class="fa-solid fa-chevron-left text-base"></i>
+                    </button>
+                    <img id="active-partner-avatar" src="https://placehold.co/100x100/3b82f6/ffffff?text=JS" class="w-9 h-9 rounded-full object-cover shadow-sm">
+                    <div class="truncate">
+                        <h3 class="font-semibold text-xs text-gray-800 dark:text-gray-100 truncate" id="active-partner-name">Teacher Portal</h3>
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400" id="active-partner-status">Checking connection...</p>
+                    </div>
+                </div>
+
+                <div id="teacher-moderator-controls" class="hidden flex items-center space-x-1">
+                    <button onclick="clearCurrentChatLog()" class="p-2 text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="toggleBlockActiveStudent()" id="block-icon-ui" class="p-2 text-gray-500 dark:text-gray-300 text-xs"><i class="fa-solid fa-ban"></i></button>
+                </div>
+            </div>
+
+            <!-- Scrollable Message Bubble Field -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-2.5 flex flex-col" id="message-container"></div>
+
+            <!-- Voice Recording Panel Overlay -->
+            <div id="recording-panel" class="hidden bg-gray-50 dark:bg-[#202c33] py-3.5 px-4 flex items-center justify-between border-t border-gray-200 dark:border-transparent shrink-0">
+                <div class="flex items-center space-x-3">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <span class="text-xs font-mono font-bold text-gray-700 dark:text-gray-200" id="recording-timer">00:00</span>
+                    <span class="text-[11px] text-gray-500">Audio wave live...</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="discardVoiceNote()" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-xs">Cancel</button>
+                    <button onclick="finalizeAndSendVoiceNote()" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs">Send</button>
+                </div>
+            </div>
+
+            <!-- File Attachment Strip -->
+            <div id="file-attachment-preview" class="hidden bg-gray-100 dark:bg-[#1f2c34] px-4 py-2 flex items-center justify-between border-t border-gray-200 dark:border-transparent shrink-0">
+                <div class="flex items-center space-x-3 truncate">
+                    <span class="text-xl shrink-0" id="file-type-icon">📄</span>
+                    <div class="truncate">
+                        <p class="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate" id="file-label-name">file.pdf</p>
+                        <p class="text-[10px] text-gray-400 font-mono" id="file-label-size">0 KB</p>
+                    </div>
+                </div>
+                <button onclick="dropQueuedFileAttachment()" class="p-1 text-gray-400 hover:text-red-500"><i class="fa-solid fa-circle-xmark"></i></button>
+            </div>
+
+            <!-- Chat Control Deck Box -->
+            <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-2 flex items-center space-x-2 border-t border-gray-200 dark:border-transparent shrink-0">
+                <div class="relative">
+                    <button onclick="toggleMobileAttachmentOverlay()" class="p-2 text-gray-500 dark:text-gray-300 flex items-center justify-center"><i class="fa-solid fa-plus text-base"></i></button>
+                    
+                    <div id="mobile-attachment-box" class="hidden absolute bottom-12 left-0 bg-white dark:bg-[#233138] rounded-xl shadow-2xl p-1 border border-gray-200 dark:border-transparent w-40 z-50 flex flex-col">
+                        <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-[#374248] rounded-lg cursor-pointer text-gray-700 dark:text-gray-200 text-xs">
+                            <i class="fa-solid fa-file-pdf text-indigo-500 text-sm"></i>
+                            <span>Document</span>
+                            <input type="file" id="input-doc" onchange="processFileQueue(event, 'doc')" class="hidden" accept=".pdf,.doc,.docx,.txt">
+                        </label>
+                        <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-[#374248] rounded-lg cursor-pointer text-gray-700 dark:text-gray-200 text-xs">
+                            <i class="fa-solid fa-image text-rose-500 text-sm"></i>
+                            <span>Photo</span>
+                            <input type="file" id="input-image" onchange="processFileQueue(event, 'img')" class="hidden" accept="image/*">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex-1 bg-white dark:bg-[#2a3942] rounded-full px-4 py-1.5 flex items-center border border-gray-100 dark:border-transparent">
+                    <input type="text" id="input-chat-message" onkeydown="catchInputEnter(event)" oninput="evaluateControlIcons()" placeholder="Message..." class="bg-transparent border-none text-xs w-full focus:outline-none text-gray-800 dark:text-gray-100">
+                </div>
+
+                <div class="shrink-0 flex items-center justify-center w-9 h-9">
+                    <button onclick="triggerVoiceCapture()" id="action-mic-btn" class="p-2 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow w-8 h-8"><i class="fa-solid fa-microphone text-xs"></i></button>
+                    <button onclick="dispatchOutgoingMessage()" id="action-send-btn" class="hidden p-2 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow w-8 h-8"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Floating Incoming Message Alert Toast -->
+    <div id="live-message-alert" onclick="jumpToIncomingAlertChannel()" class="fixed top-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 hidden bg-white dark:bg-[#233138] border border-gray-200 dark:border-transparent p-3.5 rounded-xl shadow-2xl flex items-center space-x-3 transform -translate-y-20 transition-transform duration-300 cursor-pointer active:scale-95">
+        <img id="alert-sender-avatar" src="https://placehold.co/100x100/10b981/ffffff?text=S" class="w-9 h-9 rounded-full object-cover">
+        <div class="flex-1 truncate">
+            <h4 class="text-xs font-bold text-gray-800 dark:text-gray-100 truncate" id="alert-sender-name">New Message</h4>
+            <p class="text-[11px] text-gray-500 dark:text-gray-300 truncate mt-0.5" id="alert-sender-body">💬 Text body content</p>
+        </div>
+        <i class="fa-solid fa-chevron-right text-gray-400 text-xs pl-1"></i>
+    </div>
+
+    <!-- Generic Status Toast -->
+    <div id="mobile-toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-40 hidden bg-gray-900 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center space-x-2 text-xs transition-all duration-200">
+        <i id="toast-icon-box" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-text-box">Success</span>
+    </div>
+
+    <!-- Central Audio Channel Node -->
+    <audio id="audio-player-node" class="hidden"></audio>
+
+    <script>
+        const TEACHER_RAW = "8240330068";
+        const TEACHER_E164 = "+91" + TEACHER_RAW;
+        const TEACHER_PEER_HEX = "educhat-node-" + btoa("91" + TEACHER_RAW).replace(/=/g, "").toLowerCase();
+
+        let currentAuthTab = "login";
+        let activeProfile = null;
+        let peerInstance = null;
+        let p2pConnection = null;
+
+        let selectedPhone = "";
+        let selectedPeerID = "";
+        let selectedName = "";
+
+        let globalHistory = [];
+        let globalBlocks = [];
+        let registryList = []; 
+        let unreadCounts = {}; // Key: ThreadOwner (Phone number string), Value: Number of unread messages
+
+        let micRecorderObj = null;
+        let capturedChunks = [];
+        let timerTracker = null;
+        let ticksCounter = 0;
+        let globalAudioStreamRef = null;
+        let queuedAttachedFile = null;
+
+        // Variables to handle alert toast clicks
+        let pendingAlertPhone = "";
+        let pendingAlertPeerId = "";
+        let pendingAlertName = "";
+
+        window.onload = function() {
+            const cachedUser = localStorage.getItem("mob_active_profile");
+            const cachedHistory = localStorage.getItem("mob_chat_logs");
+            const cachedBlocks = localStorage.getItem("mob_blocked_nodes");
+            const cachedRegistry = localStorage.getItem("mob_registered_students");
+            const cachedUnreads = localStorage.getItem("mob_unread_counts");
+
+            if (cachedHistory) globalHistory = JSON.parse(cachedHistory);
+            if (cachedBlocks) globalBlocks = JSON.parse(cachedBlocks);
+            if (cachedRegistry) registryList = JSON.parse(cachedRegistry);
+            if (cachedUnreads) unreadCounts = JSON.parse(cachedUnreads);
+
+            if (cachedUser) {
+                activeProfile = JSON.parse(cachedUser);
+                document.getElementById("auth-screen").classList.add("hidden");
+                requestSystemNotificationPermissions();
+                spinUpApplication();
+            } else {
+                document.getElementById("auth-screen").classList.remove("hidden");
+                switchAuthTab("login");
+            }
         };
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            // Highlight right tab
-            const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => 
-                (tabId === 'chats-tab' && b.innerText === 'Chats') || 
-                (tabId === 'new-room-tab' && b.innerText === 'New Thread')
-            );
-            if(targetBtn) targetBtn.classList.add('active');
-            
-            document.getElementById(tabId).classList.add('active');
-            if (tabId === 'chats-tab') renderDashboardChatsList();
+        function requestSystemNotificationPermissions() {
+            if ("Notification" in window) {
+                if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                    Notification.requestPermission();
+                }
+            }
         }
 
-        // --- DASHBOARD LIFECYCLE ---
-        function createNewHostRoom() {
-            chatMode = document.getElementById('chat-mode').value;
-            currentRoomId = 'INC-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-            
-            document.getElementById('host-share-ui').style.display = 'block';
-            document.getElementById('my-code-element').innerText = currentRoomId;
+        function switchAuthTab(targetTab) {
+            currentAuthTab = targetTab;
+            const lBtn = document.getElementById("tab-login");
+            const sBtn = document.getElementById("tab-signup");
+            const nameField = document.getElementById("auth-name-wrapper");
+            const passWrapper = document.getElementById("teacher-password-wrapper");
 
-            // Initialize storage framework for the host instantly
-            saveMessageToStorage(currentRoomId, 'System', 'Room created.', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), chatMode);
-            renderDashboardChatsList();
-            
-            // Go ahead and launch connectivity logic
-            bootNetworkConnection('host', currentRoomId);
-        }
-
-        function joinExistingRoom() {
-            const target = document.getElementById('target-code').value.trim().toUpperCase();
-            if(!target) return alert("Please specify a room code.");
-            
-            currentRoomId = target;
-            chatMode = 'permanent'; // Default assumptions until handshake checks out
-
-            // Put it on the dashboard registry list instantly
-            saveMessageToStorage(currentRoomId, 'System', 'Joined room.', new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), 'permanent');
-            
-            bootNetworkConnection('guest', currentRoomId);
-        }
-
-        // --- THE ENGINE: AUTOMATIC RE-CONNECTION CONNECTIVITY LAYER ---
-        function bootNetworkConnection(role, roomId) {
-            currentRoomId = roomId;
-            myRole = role;
-
-            if(peer) peer.destroy();
-            document.getElementById('msg-box').innerHTML = '';
-
-            // Switch UI immediately into the room view
-            document.getElementById('setup-container').style.display = 'none';
-            document.getElementById('chat-screen').style.display = 'flex';
-            document.getElementById('role-badge').innerText = `Room: ${roomId}`;
-            document.getElementById('policy-badge').innerText = "Connecting to network...";
-
-            // Load all historical message items into current view pane
-            loadLocalChatMessagesIntoUI(roomId);
-
-            if (role === 'host') {
-                peer = new Peer(roomId, peerConfig);
-                peer.on('open', () => { document.getElementById('policy-badge').innerText = "Waiting for partner..."; });
-                peer.on('connection', (conn) => {
-                    connection = conn;
-                    handleConnectionPipeline();
-                });
+            if (targetTab === "login") {
+                lBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm";
+                sBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400";
+                nameField.classList.add("hidden");
+                checkForTeacherPhone(document.getElementById("auth-phone-input"));
             } else {
-                peer = new Peer(peerConfig); // Guest assigned variable socket identity
-                peer.on('open', () => {
-                    document.getElementById('policy-badge').innerText = "Connecting to Host...";
-                    connection = peer.connect(roomId, { reliable: true });
-                    handleConnectionPipeline();
-                });
+                sBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm";
+                lBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400";
+                nameField.classList.remove("hidden");
+                passWrapper.classList.add("hidden"); 
             }
-
-            peer.on('error', (err) => {
-                if(err.type === 'unavailable-id') {
-                    // Critical Switch: If ID is taken, it means your partner is already hosting it!
-                    // Act like a WhatsApp partner and turn into a Guest automatically!
-                    console.log("Port live. Flipping roles to bridge active room node.");
-                    bootNetworkConnection('guest', roomId);
-                } else {
-                    document.getElementById('policy-badge').innerText = "Offline Mode";
-                }
-            });
+            document.getElementById("auth-error-box").classList.add("hidden");
         }
 
-        function handleConnectionPipeline() {
-            connection.on('open', () => {
-                document.getElementById('policy-badge').innerText = "🟢 Online";
-                
-                // Sync past items down to guest node automatically if you're hosting
-                if(myRole === 'host') {
-                    let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
-                    setTimeout(() => connection.send({
-                        type: 'sync-payload', 
-                        mode: chatMode, 
-                        history: database[currentRoomId]?.messages || []
-                    }), 500);
-                }
-            });
-
-            connection.on('data', (data) => {
-                if(data.type === 'sync-payload') {
-                    chatMode = data.mode;
-                    if(data.history.length > 0) {
-                        mergeHistoricalLogs(currentRoomId, data.history);
-                    }
-                } else if (data.type === 'msg') {
-                    renderMessage('them', data.text, data.time);
-                    saveMessageToStorage(currentRoomId, 'Them', data.text, data.time, chatMode);
-                }
-            });
-
-            connection.on('close', () => {
-                document.getElementById('policy-badge').innerText = "Partner disconnected";
-            });
-        }
-
-        // --- MESSAGE DISPATCH MECHANICS ---
-        function sendPayload() {
-            const input = document.getElementById('chat-input');
-            const txt = input.value.trim();
-            if(!txt) return;
-
-            const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            if(connection && connection.open) {
-                connection.send({ type: 'msg', text: txt, time: timeStr });
-            }
-            renderMessage('me', txt, timeStr);
-            saveMessageToStorage(currentRoomId, 'Me', txt, timeStr, chatMode);
-            input.value = '';
-        }
-
-        function renderMessage(sender, text, time) {
-            const box = document.getElementById('msg-box');
-            const msgEl = document.createElement('div');
-            msgEl.className = `msg ${sender === 'me' || sender === 'Me' ? 'me' : 'them'}`;
-            msgEl.innerHTML = `${text} <div class="msg-time">${time}</div>`;
-            box.appendChild(msgEl);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        // --- SYSTEM BACKEND STORAGE ACTIONS ---
-        function saveMessageToStorage(roomId, author, text, time, mode) {
-            let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
-            if (!database[roomId]) {
-                database[roomId] = { mode: mode, date: new Date().toLocaleDateString(), messages: [] };
-            }
-            database[roomId].messages.push({ author, text, time });
-            localStorage.setItem('whatsapp_vault', JSON.stringify(database));
-        }
-
-        function mergeHistoricalLogs(roomId, incomingHistory) {
-            let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
-            database[roomId].messages = incomingHistory;
-            localStorage.setItem('whatsapp_vault', JSON.stringify(database));
-            
-            // Refresh view
-            loadLocalChatMessagesIntoUI(roomId);
-        }
-
-        function loadLocalChatMessagesIntoUI(roomId) {
-            document.getElementById('msg-box').innerHTML = '';
-            let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
-            if(database[roomId]) {
-                chatMode = database[roomId].mode || 'permanent';
-                database[roomId].messages.forEach(m => {
-                    renderMessage(m.author, m.text, m.time);
-                });
+        function checkForTeacherPhone(el) {
+            if (currentAuthTab !== "login") return;
+            const clean = cleanPhoneInput(el.value);
+            const wrapper = document.getElementById("teacher-password-wrapper");
+            if (clean === TEACHER_E164) {
+                wrapper.classList.remove("hidden");
+            } else {
+                wrapper.classList.add("hidden");
             }
         }
 
-        function renderDashboardChatsList() {
-            const container = document.getElementById('chat-list');
-            container.innerHTML = '';
-            let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
-            const keys = Object.keys(database);
+        function cleanPhoneInput(raw) {
+            let digits = raw.replace(/[\s\(\)\-+]/g, "");
+            if (digits.length === 10) digits = "91" + digits;
+            return "+" + digits;
+        }
 
-            if(keys.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:40px 0;">No active rooms. Generate or type a code to start.</div>';
+        function handleAuthSubmit() {
+            const nameVal = document.getElementById("auth-name-input").value.trim();
+            const phoneVal = document.getElementById("auth-phone-input").value.trim();
+            const passVal = document.getElementById("auth-teacher-pass").value.trim();
+            const errorBox = document.getElementById("auth-error-box");
+            const errorTxt = document.getElementById("auth-error-msg");
+
+            if (!phoneVal || (currentAuthTab === "signup" && !nameVal)) {
+                errorTxt.innerText = "Please complete all field tracks.";
+                errorBox.classList.remove("hidden");
                 return;
             }
 
-            keys.forEach(roomId => {
-                const item = database[roomId];
-                const lastMsg = item.messages[item.messages.length - 1] || { text: 'No messages yet.' };
+            const cleanPhone = cleanPhoneInput(phoneVal);
+            const digitsOnly = cleanPhone.replace("+", "");
+
+            if (cleanPhone === TEACHER_E164 && currentAuthTab === "login") {
+                if (passVal !== "Teacher123") {
+                    errorTxt.innerText = "Invalid security credential password for Jitendra Swain.";
+                    errorBox.classList.remove("hidden");
+                    return;
+                }
+                activeProfile = { name: "Jitendra Swain", phone: TEACHER_E164, peerId: TEACHER_PEER_HEX, isTeacher: true };
+                requestSystemNotificationPermissions();
+                saveProfileAndLaunch();
+                return;
+            }
+
+            if (currentAuthTab === "signup") {
+                if (cleanPhone === TEACHER_E164) {
+                    errorTxt.innerText = "Teacher profiles must sign in via Log In tab.";
+                    errorBox.classList.remove("hidden");
+                    return;
+                }
+                const registered = registryList.some(s => s.phone === cleanPhone);
+                if (registered) {
+                    errorTxt.innerText = "This node number is already registered. Choose Log In.";
+                    errorBox.classList.remove("hidden");
+                    return;
+                }
+                const newPeerId = "educhat-node-" + btoa(digitsOnly).replace(/=/g, "").toLowerCase();
+                const freshStudent = { name: nameVal, phone: cleanPhone, peerId: newPeerId, isTeacher: false };
                 
-                const div = document.createElement('div');
-                div.className = 'chat-item';
-                div.onclick = () => bootNetworkConnection('host', roomId);
-                div.innerHTML = `
-                    <div style="flex:1; padding-right:10px; overflow:hidden;">
-                        <div style="font-weight:600; font-size:0.95rem; margin-bottom:4px;">${roomId}</div>
-                        <div style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${lastMsg.text}
+                registryList.push(freshStudent);
+                localStorage.setItem("mob_registered_students", JSON.stringify(registryList));
+                activeProfile = freshStudent;
+                requestSystemNotificationPermissions();
+                saveProfileAndLaunch();
+            } else {
+                const student = registryList.find(s => s.phone === cleanPhone);
+                if (!student) {
+                    const newPeerId = "educhat-node-" + btoa(digitsOnly).replace(/=/g, "").toLowerCase();
+                    const implicitStudent = { name: "Student " + cleanPhone.slice(-4), phone: cleanPhone, peerId: newPeerId, isTeacher: false };
+                    registryList.push(implicitStudent);
+                    localStorage.setItem("mob_registered_students", JSON.stringify(registryList));
+                    activeProfile = implicitStudent;
+                } else {
+                    activeProfile = student;
+                }
+                requestSystemNotificationPermissions();
+                saveProfileAndLaunch();
+            }
+        }
+
+        function saveProfileAndLaunch() {
+            localStorage.setItem("mob_active_profile", JSON.stringify(activeProfile));
+            document.getElementById("auth-screen").classList.add("hidden");
+            spinUpApplication();
+        }
+
+        function spinUpApplication() {
+            document.getElementById("my-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
+            document.getElementById("my-name-display").innerText = activeProfile.name;
+            document.getElementById("my-role-badge").innerText = activeProfile.isTeacher ? "Teacher Module" : "Student Module";
+            populateConversationsGrid();
+            mountPeerNodePipelines();
+        }
+
+        function populateConversationsGrid() {
+            const listWrapper = document.getElementById("chat-list-container");
+            listWrapper.innerHTML = "";
+
+            if (activeProfile.isTeacher) {
+                const uniqueStudentsMap = {};
+                globalHistory.forEach(m => { if (m.threadOwner && m.threadOwner !== TEACHER_E164) uniqueStudentsMap[m.threadOwner] = m.senderName || "Student Log"; });
+                registryList.forEach(s => { uniqueStudentsMap[s.phone] = s.name; });
+
+                const structuralKeys = Object.keys(uniqueStudentsMap);
+                if (structuralKeys.length === 0) {
+                    listWrapper.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs mt-6">Awaiting dynamic student synchronization channels...</div>`;
+                } else {
+                    structuralKeys.forEach(pNum => {
+                        const sName = uniqueStudentsMap[pNum];
+                        const subset = globalHistory.filter(m => m.threadOwner === pNum);
+                        const lastMsg = subset[subset.length - 1];
+                        const lastString = lastMsg ? (lastMsg.type === 'file' ? `📄 ${lastMsg.filename}` : (lastMsg.type === 'voice' ? '🎙️ Voice Note' : lastMsg.content)) : "Tap to open chat room";
+                        const peerTarget = "educhat-node-" + btoa(pNum.replace("+", "")).replace(/=/g, "").toLowerCase();
+                        const blocked = globalBlocks.includes(peerTarget);
+                        const unreadCount = unreadCounts[pNum] || 0;
+
+                        listWrapper.innerHTML += `
+                            <div onclick="launchMobileThread('${pNum}', '${peerTarget}', '${sName}')" class="p-4 flex items-center justify-between border-b border-gray-100 dark:border-[#222d34] active:bg-gray-50 dark:active:bg-[#1f2c34] cursor-pointer">
+                                <div class="flex items-center space-x-3 truncate">
+                                    <div class="relative shrink-0">
+                                        <img src="https://placehold.co/100x100/10b981/ffffff?text=S" class="w-10 h-10 rounded-full object-cover shadow-sm">
+                                        ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-md animate-pulse">${unreadCount}</span>` : ''}
+                                    </div>
+                                    <div class="truncate">
+                                        <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-100 flex items-center ${unreadCount > 0 ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''}">${sName} ${blocked ? '<span class="text-[9px] bg-red-100 text-red-700 font-bold px-1 rounded ml-1">BLOCKED</span>':''}</h4>
+                                        <p class="text-[11px] ${unreadCount > 0 ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-400'} truncate mt-0.5">${escapeHtml(lastString)}</p>
+                                    </div>
+                                </div>
+                                <span class="text-[9px] text-gray-400 font-mono shrink-0">${pNum}</span>
+                            </div>`;
+                    });
+                }
+            } else {
+                const subset = globalHistory.filter(m => m.threadOwner === TEACHER_E164);
+                const lastMsg = subset[subset.length - 1];
+                const lastString = lastMsg ? (lastMsg.type === 'file' ? `📄 ${lastMsg.filename}` : (lastMsg.type === 'voice' ? '🎙️ Voice Note' : lastMsg.content)) : "Tap to connect with your instructor";
+                const unreadCount = unreadCounts[TEACHER_E164] || 0;
+
+                listWrapper.innerHTML = `
+                    <div onclick="launchMobileThread('${TEACHER_E164}', '${TEACHER_PEER_HEX}', 'Jitendra Swain')" class="p-4 flex items-center justify-between border-b border-gray-100 dark:border-[#222d34] active:bg-gray-50 dark:active:bg-[#1f2c34] cursor-pointer">
+                        <div class="flex items-center space-x-3 truncate">
+                            <div class="relative shrink-0">
+                                <img src="https://placehold.co/100x100/3b82f6/ffffff?text=JS" class="w-10 h-10 rounded-full object-cover shadow-sm">
+                                ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-md animate-pulse">${unreadCount}</span>` : ''}
+                            </div>
+                            <div class="truncate">
+                                <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-100 flex items-center ${unreadCount > 0 ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''}">Jitendra Swain <span class="text-[9px] bg-blue-100 text-blue-800 rounded px-1.5 py-0.5 ml-1 font-bold">INSTRUCTOR</span></h4>
+                                <p class="text-[11px] ${unreadCount > 0 ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-400'} truncate mt-0.5">${escapeHtml(lastString)}</p>
+                            </div>
                         </div>
-                    </div>
-                    <div style="text-align:right; flex-shrink:0;">
-                        <span style="font-size:0.7rem; color:var(--text-muted);">${item.date}</span>
-                    </div>
-                `;
-                container.appendChild(div);
+                        <span class="text-[9px] text-gray-400 font-mono shrink-0">${TEACHER_E164}</span>
+                    </div>`;
+            }
+        }
+
+        function mountPeerNodePipelines() {
+            if (peerInstance) peerInstance.destroy();
+            peerInstance = new Peer(activeProfile.peerId, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+            
+            peerInstance.on('open', () => {
+                document.getElementById("node-status").innerText = "🌐 Connection Node Pipeline Operational";
+                document.getElementById("node-status").className = "text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
+                
+                if (!activeProfile.isTeacher) {
+                    setTimeout(() => {
+                        const conn = peerInstance.connect(TEACHER_PEER_HEX, { reliable: true });
+                        conn.on('open', () => {
+                            conn.send({ type: "sync_request", senderPhone: activeProfile.phone });
+                        });
+                        conn.on('data', (payload) => {
+                            if (payload.type === "sync_response") {
+                                ingestSyncHistory(payload.history);
+                            }
+                        });
+                    }, 1000);
+                }
+            });
+
+            peerInstance.on('connection', (conn) => {
+                if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) { setTimeout(() => conn.close(), 200); return; }
+                p2pConnection = conn;
+                p2pConnection.on('data', (payload) => {
+                    if (activeProfile.isTeacher && globalBlocks.includes(p2pConnection.peer)) return;
+                    
+                    if (payload.type === "sync_request") {
+                        handleSyncRequest(conn, payload.senderPhone);
+                    } else if (payload.type === "sync_response") {
+                        ingestSyncHistory(payload.history);
+                    } else {
+                        ingestIncomingPayload(payload, conn.peer);
+                    }
+                });
             });
         }
 
-        function closeActiveChatView() {
-            if(peer) peer.destroy();
+        function handleSyncRequest(conn, studentPhone) {
+            const matchedLogs = globalHistory.filter(m => m.threadOwner === studentPhone);
+            conn.send({
+                type: "sync_response",
+                history: matchedLogs
+            });
+        }
+
+        function ingestSyncHistory(historyPayload) {
+            if (!historyPayload || historyPayload.length === 0) return;
             
-            // Clean up temporary session entries instantly upon exit
-            if(chatMode === 'temporary') {
-                let database = JSON.parse(localStorage.getItem('whatsapp_vault')) || {};
-                delete database[currentRoomId];
-                localStorage.setItem('whatsapp_vault', JSON.stringify(database));
+            const currentKeys = new Set(globalHistory.map(m => m.time + m.content + m.sender));
+            historyPayload.forEach(m => {
+                const uniqueKey = m.time + m.content + m.sender;
+                if (!currentKeys.has(uniqueKey)) {
+                    globalHistory.push(m);
+                }
+            });
+            
+            localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+            populateConversationsGrid();
+            if (selectedPhone !== "") {
+                renderThreadHistoryLogs();
             }
-
-            document.getElementById('chat-screen').style.display = 'none';
-            document.getElementById('setup-container').style.display = 'flex';
-            switchTab('chats-tab');
+            triggerToast("Chat logs restored", "fa-cloud-arrow-down");
         }
 
-        function clearAllHistory() {
-            if(confirm("Delete all chats and codes from your history?")) {
-                localStorage.removeItem('whatsapp_vault');
-                renderDashboardChatsList();
+        function launchMobileThread(phoneKey, peerKey, nameKey) {
+            selectedPhone = phoneKey;
+            selectedPeerID = peerKey;
+            selectedName = nameKey;
+
+            // Clear unread indicator badge instantly for this selected room thread
+            if (unreadCounts[phoneKey]) {
+                unreadCounts[phoneKey] = 0;
+                localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
+            }
+
+            document.getElementById("active-partner-name").innerText = nameKey;
+            document.getElementById("active-partner-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/10b981/ffffff?text=S" : "https://placehold.co/100x100/3b82f6/ffffff?text=JS";
+
+            if (activeProfile.isTeacher) {
+                document.getElementById("teacher-moderator-controls").classList.remove("hidden");
+                paintBlockUiState();
+            } else {
+                document.getElementById("teacher-moderator-controls").classList.add("hidden");
+            }
+
+            renderThreadHistoryLogs();
+            updatePartnerConnectionStatus(false);
+            document.getElementById("view-chat-window").classList.remove("translate-x-full");
+
+            p2pConnection = peerInstance.connect(peerKey, { reliable: true });
+            p2pConnection.on('open', () => { 
+                updatePartnerConnectionStatus(true); 
+                if (!activeProfile.isTeacher) {
+                    p2pConnection.send({ type: "sync_request", senderPhone: activeProfile.phone });
+                }
+            });
+            p2pConnection.on('data', (payload) => {
+                if (activeProfile.isTeacher && globalBlocks.includes(selectedPeerID)) return;
+                if (payload.type === "sync_request") {
+                    handleSyncRequest(p2pConnection, payload.senderPhone);
+                } else if (payload.type === "sync_response") {
+                    ingestSyncHistory(payload.history);
+                } else {
+                    ingestIncomingPayload(payload, selectedPeerID);
+                }
+            });
+            p2pConnection.on('close', () => { updatePartnerConnectionStatus(false); });
+        }
+
+        function navigateToSidebar() {
+            selectedPhone = "";
+            selectedPeerID = "";
+            selectedName = "";
+            document.getElementById("view-chat-window").classList.add("translate-x-full");
+            populateConversationsGrid();
+        }
+
+        function renderThreadHistoryLogs() {
+            const container = document.getElementById("message-container");
+            container.innerHTML = "";
+            globalHistory.filter(m => m.threadOwner === selectedPhone).forEach(m => outputBubble(m));
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Live Real-Time Ingestion and Notification Handler
+        function ingestIncomingPayload(payload, senderPeerId) {
+            const assignedThread = activeProfile.isTeacher ? payload.senderPhone : TEACHER_E164;
+            const structured = { sender: "Them", threadOwner: assignedThread, senderName: payload.senderName, type: payload.type, content: payload.content, filename: payload.filename, filesize: payload.filesize, time: payload.time };
+
+            globalHistory.push(structured);
+            localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+
+            // Live View Update Condition
+            if (selectedPhone === assignedThread) {
+                outputBubble(structured);
+                document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
+            } else {
+                // Increment and update unread message counter
+                if (!unreadCounts[assignedThread]) {
+                    unreadCounts[assignedThread] = 0;
+                }
+                unreadCounts[assignedThread] += 1;
+                localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
+
+                // Dispatch notifications
+                triggerLiveNotificationSystem(structured, senderPeerId);
+                populateConversationsGrid();
             }
         }
 
-        // App start lifecycle setup initialization load triggers
-        document.addEventListener("DOMContentLoaded", () => {
-            renderDashboardChatsList();
-        });
+        // Core Notification Routing Protocol
+        function triggerLiveNotificationSystem(msgObject, senderPeerId) {
+            let excerptText = msgObject.content;
+            if (msgObject.type === 'file') excerptText = `📄 Shared file: ${msgObject.filename}`;
+            if (msgObject.type === 'voice') excerptText = `🎙️ Sent a Voice Note`;
+
+            // Case A: App is running in the background (or minimized tab) -> System Native Notification
+            if (document.hidden) {
+                if ("Notification" in window && Notification.permission === "granted") {
+                    const sysNotification = new Notification(`EduChat: ${msgObject.senderName}`, {
+                        body: excerptText,
+                        icon: 'https://placehold.co/100x100/10b981/ffffff?text=💬'
+                    });
+                    sysNotification.onclick = function() {
+                        window.focus();
+                        launchMobileThread(msgObject.threadOwner, senderPeerId, msgObject.senderName);
+                    };
+                }
+            } 
+            // Case B: App is open but user is focusing somewhere else -> Smooth In-App Toast Overlay
+            else {
+                pendingAlertPhone = msgObject.threadOwner;
+                pendingAlertPeerId = senderPeerId;
+                pendingAlertName = msgObject.senderName;
+
+                document.getElementById("alert-sender-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/10b981/ffffff?text=S" : "https://placehold.co/100x100/3b82f6/ffffff?text=JS";
+                document.getElementById("alert-sender-name").innerText = msgObject.senderName;
+                document.getElementById("alert-sender-body").innerText = excerptText;
+
+                const notificationBanner = document.getElementById("live-message-alert");
+                notificationBanner.classList.remove("hidden");
+                setTimeout(() => {
+                    notificationBanner.style.transform = "translateY(0)";
+                }, 50);
+
+                // Auto-dismiss the alert banner window cleanly after 4 seconds
+                setTimeout(() => {
+                    dismissIncomingAlertBanner();
+                }, 4000);
+            }
+        }
+
+        function jumpToIncomingAlertChannel() {
+            if (pendingAlertPhone) {
+                launchMobileThread(pendingAlertPhone, pendingAlertPeerId, pendingAlertName);
+                dismissIncomingAlertBanner();
+            }
+        }
+
+        function dismissIncomingAlertBanner() {
+            const notificationBanner = document.getElementById("live-message-alert");
+            notificationBanner.style.transform = "translateY(-5rem)";
+            setTimeout(() => {
+                notificationBanner.classList.add("hidden");
+                pendingAlertPhone = "";
+                pendingAlertPeerId = "";
+                pendingAlertName = "";
+            }, 300);
+        }
+
+        function dispatchOutgoingMessage() {
+            const input = document.getElementById("input-chat-message");
+            const rawText = input.value.trim();
+            if (!rawText && !queuedAttachedFile) return;
+
+            const timeStamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            let envelope = {};
+
+            if (queuedAttachedFile) {
+                envelope = { type: "file", content: queuedAttachedFile.content, filename: queuedAttachedFile.name, filesize: queuedAttachedFile.size, time: timeStamp, senderPhone: activeProfile.phone, senderName: activeProfile.name };
+                dropQueuedFileAttachment();
+            } else {
+                envelope = { type: "text", content: rawText, time: timeStamp, senderPhone: activeProfile.phone, senderName: activeProfile.name };
+                input.value = "";
+            }
+
+            if (p2pConnection && p2pConnection.open) p2pConnection.send(envelope);
+
+            const appendRecord = { sender: "Me", threadOwner: selectedPhone, ...envelope };
+            globalHistory.push(appendRecord);
+            localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+
+            outputBubble(appendRecord);
+            evaluateControlIcons();
+            document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
+        }
+
+        function triggerVoiceCapture() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Recording drivers missing.");
+                return;
+            }
+
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                globalAudioStreamRef = stream;
+                capturedChunks = [];
+                
+                let options = { mimeType: 'audio/webm' };
+                if (!MediaRecorder.isTypeSupported('audio/webm')) {
+                    options = { mimeType: 'audio/mp4' }; 
+                    if (!MediaRecorder.isTypeSupported('audio/mp4')) options = {};
+                }
+
+                micRecorderObj = new MediaRecorder(stream, options);
+                micRecorderObj.ondataavailable = e => { if (e.data && e.data.size > 0) capturedChunks.push(e.data); };
+                
+                micRecorderObj.onstop = () => {
+                    if (capturedChunks.length === 0) return;
+                    const blob = new Blob(capturedChunks, { type: micRecorderObj.mimeType || 'audio/webm' });
+                    const fileReader = new FileReader();
+                    fileReader.readAsDataURL(blob);
+                    fileReader.onloadend = () => { shipVoiceBuffer(fileReader.result); };
+                };
+
+                document.getElementById("recording-panel").classList.remove("hidden");
+                ticksCounter = 0;
+                document.getElementById("recording-timer").innerText = "00:00";
+
+                timerTracker = setInterval(() => {
+                    ticksCounter++;
+                    const m = String(Math.floor(ticksCounter / 60)).padStart(2, '0');
+                    const s = String(ticksCounter % 60).padStart(2, '0');
+                    document.getElementById("recording-timer").innerText = `${m}:${s}`;
+                }, 1000);
+
+                micRecorderObj.start(250);
+            }).catch(() => { alert("Microphone access refused."); });
+        }
+
+        function finalizeAndSendVoiceNote() {
+            closeHardwareRecordingUI();
+            if (micRecorderObj && micRecorderObj.state !== "inactive") micRecorderObj.stop();
+            if (globalAudioStreamRef) globalAudioStreamRef.getTracks().forEach(t => t.stop());
+        }
+
+        function discardVoiceNote() {
+            closeHardwareRecordingUI();
+            if (micRecorderObj && micRecorderObj.state !== "inactive") { micRecorderObj.onstop = null; micRecorderObj.stop(); }
+            if (globalAudioStreamRef) globalAudioStreamRef.getTracks().forEach(t => t.stop());
+            triggerToast("Recording discarded", "fa-trash-can");
+        }
+
+        function closeHardwareRecordingUI() { clearInterval(timerTracker); document.getElementById("recording-panel").classList.add("hidden"); }
+
+        function shipVoiceBuffer(base64) {
+            const timeStamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const payload = { type: "voice", content: base64, time: timeStamp, senderPhone: activeProfile.phone, senderName: activeProfile.name };
+
+            if (p2pConnection && p2pConnection.open) p2pConnection.send(payload);
+
+            const internalObj = { sender: "Me", threadOwner: selectedPhone, ...payload };
+            globalHistory.push(internalObj);
+            localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+
+            outputBubble(internalObj);
+            document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
+        }
+
+        // Centralized Audio Node Player Handler
+        function runAudioPipeline(dataUri, btnId) {
+            const player = document.getElementById("audio-player-node");
+            const btn = document.getElementById(btnId);
+            
+            if (!player.paused && player.src === dataUri) {
+                player.pause();
+                btn.innerText = "▶";
+                return;
+            }
+            
+            player.src = dataUri;
+            player.load();
+            
+            player.play().then(() => {
+                btn.innerText = "⏸";
+            }).catch(e => {
+                console.error("Playback block:", e);
+                const auxPlayer = new Audio(dataUri);
+                auxPlayer.play().then(() => {
+                    btn.innerText = "⏸";
+                    auxPlayer.onended = () => btn.innerText = "▶";
+                });
+            });
+
+            player.onended = () => { btn.innerText = "▶"; };
+        }
+
+        function toggleMobileAttachmentOverlay() { document.getElementById("mobile-attachment-box").classList.toggle("hidden"); }
+        function dropQueuedFileAttachment() { queuedAttachedFile = null; document.getElementById("file-attachment-preview").classList.add("hidden"); evaluateControlIcons(); }
+        
+        function processFileQueue(event, category) {
+            const file = event.target.files[0]; if (!file) return;
+            if (file.size > 15 * 1024 * 1024) return alert("Files are limited to 15MB over P2P network.");
+            const diskReader = new FileReader(); diskReader.readAsDataURL(file);
+            diskReader.onload = () => {
+                queuedAttachedFile = { name: file.name, size: parseSizeMetric(file.size), content: diskReader.result };
+                document.getElementById("file-label-name").innerText = queuedAttachedFile.name;
+                document.getElementById("file-label-size").innerText = queuedAttachedFile.size;
+                document.getElementById("file-type-icon").innerText = category === 'img' ? "📸" : "📄";
+                document.getElementById("file-attachment-preview").classList.remove("hidden");
+                document.getElementById("mobile-attachment-box").classList.add("hidden");
+                evaluateControlIcons();
+            };
+        }
+
+        function evaluateControlIcons() {
+            const txt = document.getElementById("input-chat-message").value.trim();
+            const send = document.getElementById("action-send-btn"); const mic = document.getElementById("action-mic-btn");
+            if (txt !== "" || queuedAttachedFile !== null) { send.classList.remove("hidden"); mic.classList.add("hidden"); } 
+            else { send.classList.add("hidden"); mic.classList.remove("hidden"); }
+        }
+
+        function catchInputEnter(e) { if (e.key === "Enter") dispatchOutgoingMessage(); }
+
+        function outputBubble(m) {
+            const targetBox = document.getElementById("message-container");
+            const isMe = m.sender === "Me";
+            const alignment = isMe ? "self-end items-end" : "self-start items-start";
+            const colorScheme = isMe ? "bg-emerald-600 text-white rounded-tr-none" : "bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 rounded-tl-none";
+            let coreMarkup = "";
+
+            if (m.type === "text") {
+                coreMarkup = `<p class="text-xs leading-relaxed break-words">${escapeHtml(m.content)}</p>`;
+            } else if (m.type === "voice") {
+                const randomId = 'note-' + Math.random().toString(36).substring(3, 7);
+                coreMarkup = `
+                    <div class="flex items-center space-x-2 py-1 text-inherit">
+                        <button class="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow focus:outline-none" id="${randomId}" onclick="runAudioPipeline('${m.content}', '${randomId}')">▶</button>
+                        <span class="text-xs font-medium select-none">Voice Note</span>
+                    </div>`;
+            } else if (m.type === "file") {
+                coreMarkup = `
+                    <a href="${m.content}" download="${m.filename}" class="flex items-center gap-2 bg-black/5 dark:bg-[#111b21]/30 p-2 rounded-lg border dark:border-transparent text-left">
+                        <span class="text-xl shrink-0">📄</span>
+                        <div class="truncate max-w-[140px]">
+                            <p class="text-xs font-medium truncate">${escapeHtml(m.filename)}</p>
+                            <p class="text-[9px] opacity-70">${m.filesize}</p>
+                        </div>
+                    </a>`;
+            }
+
+            const element = document.createElement("div"); element.className = `flex flex-col max-w-[85%] ${alignment}`;
+            element.innerHTML = `<div class="p-2.5 rounded-xl shadow-sm ${colorScheme} text-left">${coreMarkup}</div><span class="text-[9px] text-gray-400 mt-0.5 px-0.5">${m.time} ${isMe ? '<i class="fa-solid fa-check-double text-sky-500 ml-0.5"></i>' : ''}</span>`;
+            targetBox.appendChild(element);
+        }
+
+        function clearCurrentChatLog() {
+            if (confirm(`Wipe clear logs for ${selectedName}?`)) {
+                globalHistory = globalHistory.filter(m => m.threadOwner !== selectedPhone);
+                localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+                renderThreadHistoryLogs(); triggerToast("Logs cleared");
+            }
+        }
+
+        function toggleBlockActiveStudent() {
+            const loc = globalBlocks.indexOf(selectedPeerID);
+            if (loc > -1) { 
+                globalBlocks.splice(loc, 1); 
+                triggerToast("Node Unblocked"); 
+                setTimeout(() => {
+                    launchMobileThread(selectedPhone, selectedPeerID, selectedName);
+                }, 300);
+            } else { 
+                globalBlocks.push(selectedPeerID); 
+                triggerToast("Node Blocked", "fa-ban"); 
+                if (p2pConnection) p2pConnection.close(); 
+            }
+            localStorage.setItem("mob_blocked_nodes", JSON.stringify(globalBlocks)); 
+            paintBlockUiState();
+        }
+
+        function paintBlockUiState() {
+            document.getElementById("block-icon-ui").className = globalBlocks.includes(selectedPeerID) ? "p-2 text-emerald-500 text-xs" : "p-2 text-gray-500 dark:text-gray-300 text-xs";
+        }
+
+        function updatePartnerConnectionStatus(connected) {
+            document.getElementById("active-partner-status").innerText = connected ? "🟢 Online Pipeline Ready" : "⚪ Pipeline Syncing...";
+        }
+
+        function toggleDarkMode() { document.documentElement.classList.toggle('dark'); triggerToast("Theme updated"); }
+        function triggerToast(text, classIcon = "fa-circle-check") {
+            const el = document.getElementById("mobile-toast"); document.getElementById("toast-text-box").innerText = text; document.getElementById("toast-icon-box").className = `fa-solid ${classIcon} text-emerald-400`;
+            el.classList.remove("hidden"); setTimeout(() => { el.classList.add("opacity-100"); }, 20);
+            setTimeout(() => { el.classList.remove("opacity-100"); setTimeout(() => { el.classList.add("hidden"); }, 200); }, 2500);
+        }
+
+        function parseSizeMetric(bytes) { if (bytes===0) return '0 B'; const k=1024; const sizes=['B','KB','MB']; const i=Math.floor(Math.log(bytes)/Math.log(k)); return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+sizes[i]; }
+        function escapeHtml(str) { return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+        function logoutUser() { if (confirm("Reset connection profile data?")) { localStorage.removeItem("mob_active_profile"); localStorage.removeItem("mob_unread_counts"); location.reload(); } }
     </script>
 </body>
 </html>
