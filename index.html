@@ -18,66 +18,6 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-950 h-[100dvh] w-screen overflow-hidden flex flex-col antialiased">
 
-<script>
-    // --- PERSISTENCE ENGINE ---
-    function saveMessageToHistory(msg) {
-        let history = JSON.parse(localStorage.getItem("mob_chat_logs") || "[]");
-        history.push(msg);
-        localStorage.setItem("mob_chat_logs", JSON.stringify(history));
-        globalHistory = history; // Update global variable used by your UI
-    }
-
-    // --- UPDATED DISPATCH LOGIC ---
-    function dispatchOutgoingMessage() {
-        const input = document.getElementById("input-chat-message");
-        const content = input.value.trim();
-        if (!content) return;
-
-        const msg = {
-            threadOwner: selectedPhone,
-            content: content,
-            type: 'text',
-            timestamp: Date.now(),
-            senderName: activeProfile.name
-        };
-
-        // 1. ALWAYS save locally so it never disappears
-        saveMessageToHistory(msg);
-
-        // 2. Attempt P2P Send
-        if (p2pConnection && p2pConnection.open) {
-            p2pConnection.send(msg);
-        } else {
-            console.log("Teacher offline: Message saved locally only.");
-        }
-
-        input.value = "";
-        populateConversationsGrid(); // Refresh your UI
-        
-        // Auto-scroll logic
-        const container = document.getElementById("message-container");
-        if(container) container.scrollTop = container.scrollHeight;
-    }
-
-    // --- INITIALIZATION ---
-    // Ensure that when your app starts, it reloads the history from LocalStorage
-    const cachedHistory = localStorage.getItem("mob_chat_logs");
-    if (cachedHistory) {
-        globalHistory = JSON.parse(cachedHistory);
-    }
-
-    // --- ADD THIS TO YOUR PEERJS 'open' EVENT ---
-    // This ensures that when the teacher eventually connects, you could potentially
-    // re-send messages that were stored while they were offline.
-    peerInstance.on('connection', (conn) => {
-        p2pConnection = conn;
-        console.log("Teacher is back online!");
-        // You can add logic here to loop through local history and re-send missing messages
-    });
-    
-    // ... (Keep the rest of your original logic below)
-</script>
-
 <!-- AUTHENTICATION SCREEN -->
 <div id="auth-screen" class="fixed inset-0 z-50 bg-gray-50 dark:bg-[#0b141a] flex flex-col p-6 overflow-y-auto justify-center">
     <div class="max-w-md w-full mx-auto bg-white dark:bg-[#1f2c34] rounded-2xl shadow-xl p-6 border border-gray-100 dark:border-[#2a3942] flex flex-col gap-5">
@@ -281,6 +221,13 @@
     let ticksCounter = 0;
     let globalAudioStreamRef = null;
     let queuedAttachedFile = null;
+    let deliveryQueue = [];
+    let deliveryRetryTimer = null;
+    let peerRestartTimer = null;
+    const liveConnections = new Map();
+    const connectingPeers = new Set();
+    const deliveryAttemptTimes = new Map();
+    const DELIVERY_RETRY_DELAY = 12000;
 
     let pendingAlertPhone = "";
     let pendingAlertPeerId = "";
@@ -297,6 +244,7 @@
         if (cachedBlocks) globalBlocks = JSON.parse(cachedBlocks);
         if (cachedRegistry) registryList = JSON.parse(cachedRegistry);
         if (cachedUnreads) unreadCounts = JSON.parse(cachedUnreads);
+        deliveryQueue = JSON.parse(localStorage.getItem("mob_delivery_queue") || "[]");
 
         if (cachedUser) {
             activeProfile = JSON.parse(cachedUser);
@@ -527,43 +475,169 @@
     }
 
     function mountPeerNodePipelines() {
+        clearTimeout(peerRestartTimer);
+        clearInterval(deliveryRetryTimer);
         if (peerInstance) peerInstance.destroy();
-        peerInstance = new Peer(activeProfile.peerId, { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+        startPeerNode();
+        deliveryRetryTimer = setInterval(attemptQueuedDeliveries, 10000);
+        window.addEventListener('online', attemptQueuedDeliveries, { once: true });
+    }
+
+    function startPeerNode() {
+        if (!activeProfile) return;
+        peerInstance = new Peer(activeProfile.peerId, {
+            host: '0.peerjs.com',
+            port: 443,
+            path: '/',
+            secure: true,
+            debug: 1,
+            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+        });
         
         peerInstance.on('open', () => {
             document.getElementById("node-status").innerText = "🌐 Connection Node Pipeline Operational";
             document.getElementById("node-status").className = "text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
             
-            if (!activeProfile.isTeacher) {
-                setTimeout(() => {
-                    const conn = peerInstance.connect(TEACHER_PEER_HEX, { reliable: true });
-                    conn.on('open', () => {
-                        conn.send({ type: "sync_request", senderPhone: activeProfile.phone });
-                    });
-                    conn.on('data', (payload) => {
-                        if (payload.type === "sync_response") {
-                            ingestSyncHistory(payload.history);
-                        }
-                    });
-                }, 1000);
-            }
+            if (!activeProfile.isTeacher) connectToPeer(TEACHER_PEER_HEX, true);
+            attemptQueuedDeliveries();
         });
 
         peerInstance.on('connection', (conn) => {
             if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) { setTimeout(() => conn.close(), 200); return; }
             p2pConnection = conn;
-            p2pConnection.on('data', (payload) => {
-                if (activeProfile.isTeacher && globalBlocks.includes(p2pConnection.peer)) return;
-                
-                if (payload.type === "sync_request") {
-                    handleSyncRequest(conn, payload.senderPhone);
-                } else if (payload.type === "sync_response") {
-                    ingestSyncHistory(payload.history);
-                } else {
-                    ingestIncomingPayload(payload, conn.peer);
-                }
+            wireConnection(conn);
+            conn.on('open', () => {
+                connectingPeers.delete(conn.peer);
+                liveConnections.set(conn.peer, conn);
+                sendQueuedOnConnection(conn);
+            });
+            conn.on('close', () => {
+                if (liveConnections.get(conn.peer) === conn) liveConnections.delete(conn.peer);
             });
         });
+
+        peerInstance.on('error', (error) => {
+            const status = document.getElementById("node-status");
+            if (error && error.type === 'unavailable-id') {
+                status.innerText = "This profile is already open in another tab or device";
+                status.className = "text-[11px] font-medium text-rose-600 dark:text-rose-400";
+                return;
+            }
+            // A missing recipient is normal when the teacher/student is offline.
+            // Do not destroy this peer: it is still connected to the signalling server.
+            if (error && (error.type === 'peer-unavailable' || error.type === 'webrtc')) {
+                const partnerStatus = document.getElementById("active-partner-status");
+                if (partnerStatus) partnerStatus.innerText = "Offline — messages will send when they return";
+                return;
+            }
+            const reason = error && error.type ? ` (${error.type})` : '';
+            status.innerText = `Reconnecting secure link${reason} — messages stay queued`;
+            status.className = "text-[11px] font-medium text-amber-600 dark:text-amber-400";
+            if (peerInstance) peerInstance.destroy();
+            clearTimeout(peerRestartTimer);
+            peerRestartTimer = setTimeout(startPeerNode, 5000);
+        });
+
+        peerInstance.on('disconnected', () => {
+            const status = document.getElementById("node-status");
+            status.innerText = "Secure link interrupted — reconnecting";
+            status.className = "text-[11px] font-medium text-amber-600 dark:text-amber-400";
+            if (peerInstance && !peerInstance.destroyed) {
+                peerInstance.reconnect();
+                clearTimeout(peerRestartTimer);
+                peerRestartTimer = setTimeout(() => {
+                    if (peerInstance && peerInstance.disconnected) startPeerNode();
+                }, 5000);
+            }
+        });
+    }
+
+    function messageId() {
+        return (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    }
+
+    function saveDeliveryQueue() {
+        localStorage.setItem("mob_delivery_queue", JSON.stringify(deliveryQueue));
+    }
+
+    function queueForDelivery(payload, peerId) {
+        payload.messageId = payload.messageId || messageId();
+        deliveryQueue.push({ peerId, payload });
+        saveDeliveryQueue();
+        attemptQueuedDeliveries();
+    }
+
+    function connectToPeer(peerId, requestSync = false) {
+        if (!peerInstance || peerInstance.destroyed || !peerId) return;
+        const existing = liveConnections.get(peerId);
+        if (existing && existing.open) {
+            if (requestSync) existing.send({ type: "sync_request", senderPhone: activeProfile.phone });
+            sendQueuedOnConnection(existing);
+            return;
+        }
+        if (connectingPeers.has(peerId)) return;
+        connectingPeers.add(peerId);
+        const conn = peerInstance.connect(peerId, { reliable: true, serialization: 'json' });
+        conn.on('open', () => {
+            connectingPeers.delete(peerId);
+            liveConnections.set(peerId, conn);
+            p2pConnection = conn;
+            wireConnection(conn);
+            if (requestSync) conn.send({ type: "sync_request", senderPhone: activeProfile.phone });
+            sendQueuedOnConnection(conn);
+        });
+        conn.on('error', () => {
+            connectingPeers.delete(peerId);
+            liveConnections.delete(peerId);
+            const partnerStatus = document.getElementById("active-partner-status");
+            if (partnerStatus) partnerStatus.innerText = "Offline — messages will send when they return";
+        });
+        conn.on('close', () => {
+            connectingPeers.delete(peerId);
+            if (liveConnections.get(peerId) === conn) liveConnections.delete(peerId);
+        });
+    }
+
+    function attemptQueuedDeliveries() {
+        if (!peerInstance || !peerInstance.open || deliveryQueue.length === 0) return;
+        [...new Set(deliveryQueue.map(item => item.peerId))].forEach(peerId => {
+            const conn = liveConnections.get(peerId);
+            if (conn && conn.open) sendQueuedOnConnection(conn);
+            else connectToPeer(peerId);
+        });
+    }
+
+    function sendQueuedOnConnection(conn) {
+        const now = Date.now();
+        deliveryQueue.filter(item => item.peerId === conn.peer).forEach(item => {
+            const lastAttempt = deliveryAttemptTimes.get(item.payload.messageId) || 0;
+            if (now - lastAttempt < DELIVERY_RETRY_DELAY) return;
+            try {
+                conn.send(item.payload);
+                deliveryAttemptTimes.set(item.payload.messageId, now);
+            } catch (_) { /* retry next time */ }
+        });
+    }
+
+    function wireConnection(conn) {
+        if (conn.__educhatWired) return;
+        conn.__educhatWired = true;
+        conn.on('data', (payload) => {
+            if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) return;
+            if (payload.type === "delivery_ack") {
+                deliveryQueue = deliveryQueue.filter(item => item.payload.messageId !== payload.messageId);
+                deliveryAttemptTimes.delete(payload.messageId);
+                saveDeliveryQueue();
+            } else if (payload.type === "sync_request") {
+                handleSyncRequest(conn, payload.senderPhone);
+            } else if (payload.type === "sync_response") {
+                ingestSyncHistory(payload.history || []);
+            } else {
+                ingestIncomingPayload(payload, conn.peer);
+                if (payload.messageId) conn.send({ type: "delivery_ack", messageId: payload.messageId });
+            }
+        });
+        conn.on('open', () => sendQueuedOnConnection(conn));
     }
 
     function handleSyncRequest(conn, senderPhone) {
@@ -587,6 +661,8 @@
     }
 
     function ingestIncomingPayload(payload, remotePeerId) {
+        const incomingId = payload.messageId || `${payload.senderPhone}:${payload.timestamp}:${String(payload.content).length}`;
+        if (globalHistory.some(m => m.messageId === incomingId)) return;
         const associatedPhone = payload.senderPhone;
         const targetThread = activeProfile.isTeacher ? associatedPhone : TEACHER_E164;
         
@@ -598,7 +674,8 @@
             type: payload.type || 'text',
             filename: payload.filename || '',
             filesize: payload.filesize || '',
-            timestamp: payload.timestamp || Date.now()
+            timestamp: payload.timestamp || Date.now(),
+            messageId: incomingId
         };
 
         globalHistory.push(messageEnvelope);
@@ -910,17 +987,85 @@
         box.classList.toggle("hidden");
     }
 
-    function processFileQueue(event, type) {
+    async function processFileQueue(event, type) {
         const file = event.target.files[0];
         if (!file) return;
 
-        if (file.size > 15 * 1024 * 1024) { // 15MB P2P Cap
-            invokeDeviceToast("Internal Pipe cap exceeded! (Max size 15MB)", true);
+        // Data URLs are ~33% larger than the source. Keep payloads small enough for
+        // PeerJS and local storage, and compress photos before queuing them.
+        const maxBytes = file.type.startsWith("video/") ? 1500 * 1024 : 1024 * 1024;
+        if (file.size > maxBytes && !file.type.startsWith("image/")) {
+            invokeDeviceToast("File is too large for reliable offline sending (video max 1.5 MB; documents max 1 MB)", true);
             return;
         }
 
+        try {
+            let dataUrl;
+            let finalSize = file.size;
+            if (file.type.startsWith("image/")) {
+                const compressed = await compressImageForSending(file);
+                dataUrl = compressed.dataUrl;
+                finalSize = compressed.size;
+            } else {
+                dataUrl = await readFileAsDataUrl(file);
+            }
+            queuedAttachedFile = {
+                filename: file.name,
+                filesize: formatBytesLabel(finalSize),
+                dataUrl
+            };
+
+            const preview = document.getElementById("file-attachment-preview");
+            preview.classList.remove("hidden");
+            document.getElementById("file-label-name").innerText = file.name;
+            document.getElementById("file-label-size").innerText = formatBytesLabel(finalSize);
+            const icon = document.getElementById("file-type-icon");
+            icon.innerText = file.type.startsWith("image/") ? "📸" : file.type.startsWith("video/") ? "🎥" : "📄";
+            toggleMobileAttachmentOverlay();
+            evaluateControlIcons();
+        } catch (_) {
+            invokeDeviceToast("Could not prepare that file for sending", true);
+        }
+    }
+
+    function readFileAsDataUrl(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function compressImageForSending(file) {
+        const source = await readFileAsDataUrl(file);
+        const image = await new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = source;
+        });
+        const longestSide = Math.max(image.width, image.height);
+        const scale = Math.min(1, 1280 / longestSide);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+        const size = Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75);
+        if (size > 1024 * 1024) throw new Error("compressed image is still too large");
+        return { dataUrl, size };
+    }
+
+    /*
+        The former FileReader callback is intentionally replaced by the async
+        preparation above, which prevents an uncompressed multi-megabyte image
+        from being placed in the offline outbox.
+    */
+    function legacyFileReaderCallback() {
+        /* retained only as a harmless compatibility stub */
+        /*
         const reader = new FileReader();
-        reader.readAsDataURL(file);
         reader.onload = function() {
             queuedAttachedFile = {
                 filename: file.name,
@@ -942,6 +1087,7 @@
             toggleMobileAttachmentOverlay();
             evaluateControlIcons();
         };
+        */
     }
 
     function formatBytesLabel(bytes) {
@@ -992,7 +1138,8 @@
                 type: "file",
                 filename: queuedAttachedFile.filename,
                 filesize: queuedAttachedFile.filesize,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                messageId: messageId()
             };
             dropQueuedFileAttachment();
         } else {
@@ -1001,7 +1148,8 @@
                 senderName: activeProfile.name,
                 content: textVal,
                 type: "text",
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                messageId: messageId()
             };
             document.getElementById("input-chat-message").value = "";
         }
@@ -1019,12 +1167,7 @@
         evaluateControlIcons();
 
         // P2P transmission
-        if (peerInstance) {
-            const conn = peerInstance.connect(selectedPeerID, { reliable: true });
-            conn.on('open', () => {
-                conn.send(finalPayload);
-            });
-        }
+        queueForDelivery(finalPayload, selectedPeerID);
         populateConversationsGrid();
     }
 
@@ -1053,7 +1196,8 @@
                         senderName: activeProfile.name,
                         content: base64Audio,
                         type: "voice",
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
+                        messageId: messageId()
                     };
 
                     const envelope = { ...voicePayload, threadOwner: selectedPhone };
@@ -1063,10 +1207,7 @@
                     appendSingleMessageUI(envelope);
                     scrollToChatBottom();
 
-                    if (peerInstance) {
-                        const conn = peerInstance.connect(selectedPeerID, { reliable: true });
-                        conn.on('open', () => { conn.send(voicePayload); });
-                    }
+                    queueForDelivery(voicePayload, selectedPeerID);
                     populateConversationsGrid();
                 };
             };
