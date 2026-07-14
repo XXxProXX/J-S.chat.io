@@ -31,7 +31,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-950 transition-colors duration-300 h-[100dvh] w-screen overflow-hidden flex flex-col antialiased select-none pb-[safe-area-inset-bottom]">
+<body class="bg-gray-100 dark:bg-gray-950 transition-colors duration-300 h-[100dvh] w-screen overflow-hidden flex flex-col antialiased select-none">
 
     <!-- Auth Gateway Overlay -->
     <div id="auth-screen" class="fixed inset-0 z-50 bg-gray-50 dark:bg-[#0b141a] flex flex-col p-6 overflow-y-auto justify-center">
@@ -78,7 +78,7 @@
     <div class="flex-1 flex w-full h-full relative overflow-hidden">
         
         <!-- View A: Chats Overview Sidebar -->
-        <div id="view-sidebar" class="w-full h-full flex flex-col bg-white dark:bg-[#111b21] z-10 transition-transform duration-300">
+        <div id="view-sidebar" class="w-full h-full flex flex-col bg-white dark:bg-[#111b21] z-10">
             <div class="bg-gray-50 dark:bg-[#202c33] px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-transparent shrink-0">
                 <div class="flex items-center space-x-3">
                     <img id="my-avatar" src="https://placehold.co/100x100/10b981/ffffff?text=U" class="w-9 h-9 rounded-full object-cover border border-emerald-500">
@@ -103,8 +103,8 @@
             </div>
         </div>
 
-        <!-- View B: Focused Chat Stream Screen -->
-        <div id="view-chat-window" class="absolute inset-0 w-full h-full flex flex-col bg-[#efeae2] dark:bg-[#0b141a] chat-bg transform translate-x-full z-20 transition-transform duration-300">
+        <!-- View B: Focused Chat Stream Screen (CHANGED TO FIXED INSET TO PREVENT CUT-OFF) -->
+        <div id="view-chat-window" class="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#efeae2] dark:bg-[#0b141a] chat-bg transform translate-x-full z-20 transition-transform duration-300 pb-[safe-area-inset-bottom]">
             <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-2.5 flex items-center justify-between border-b border-gray-200 dark:border-transparent shrink-0">
                 <div class="flex items-center space-x-2 truncate">
                     <button onclick="navigateToSidebar()" class="p-2 -ml-1 text-gray-600 dark:text-gray-300 rounded-full text-sm">
@@ -256,7 +256,7 @@
             // Keyboard Viewport Adjustment Hack for mobile browsers
             if (window.visualViewport) {
                 window.visualViewport.addEventListener('resize', () => {
-                    document.body.style.height = window.visualViewport.height + 'px';
+                    document.getElementById("view-chat-window").style.height = window.visualViewport.height + 'px';
                     if (selectedPhone !== "") {
                         document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
                     }
