@@ -1211,14 +1211,17 @@ async function compressImageForSending(file) {
         img.src = source;
     });
     const longestSide = Math.max(image.width, image.height);
-        const scale = Math.min(1, 900 / longestSide);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(image.width * scale);
-        canvas.height = Math.round(image.height * scale);
-        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.62);
-        const size = Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75);
-        if (size > 320 * 1024) throw new Error("compressed image is still too large");
+    const scale = Math.min(1, 900 / longestSide);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.width * scale);
+    canvas.height = Math.round(image.height * scale);
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.62);
+    const size = Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75);
+    if (size > 320 * 1024) throw new Error("compressed image is still too large");
+    return { dataUrl, size };
+}
+
 function dropQueuedFileAttachment() {
     queuedAttachedFile = null;
     document.getElementById("file-attachment-preview").classList.add("hidden");
