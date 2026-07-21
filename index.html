@@ -29,8 +29,8 @@
         </div>
 
         <div class="flex border-b border-gray-200 dark:border-[#2a3942] p-0.5 bg-gray-100 dark:bg-[#111b21] rounded-lg">
-            <button onclick="switchAuthTab('login')" id="tab-login" class="flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm">Log In</button>
-            <button onclick="switchAuthTab('signup')" id="tab-signup" class="flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400">Sign Up</button>
+            <button id="tab-login" class="flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm">Log In</button>
+            <button id="tab-signup" class="flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400">Sign Up</button>
         </div>
         
         <div class="space-y-4">
@@ -40,7 +40,7 @@
             </div>
             <div>
                 <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Phone Number</label>
-                <input type="tel" id="auth-phone-input" oninput="checkForTeacherPhone(this)" placeholder="e.g. 8240330068" class="w-full bg-gray-100 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono">
+                <input type="tel" id="auth-phone-input" placeholder="e.g. 8240330068" class="w-full bg-gray-100 dark:bg-[#2a3942] text-gray-800 dark:text-gray-100 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono">
             </div>
             <div id="teacher-password-wrapper" class="hidden">
                 <label class="block text-xs font-semibold text-red-500 dark:text-red-400 mb-1">Teacher Security Password</label>
@@ -53,7 +53,7 @@
             <span id="auth-error-msg"></span>
         </div>
 
-        <button onclick="handleAuthSubmit()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.99] transition-all">Continue to Hub</button>
+        <button id="auth-submit-btn" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-md active:scale-[0.99] transition-all">Continue to Hub</button>
     </div>
 </div>
 
@@ -71,8 +71,8 @@
                 </div>
             </div>
             <div class="flex items-center space-x-1.5">
-                <button onclick="toggleDarkMode()" class="p-2 text-gray-600 dark:text-gray-300 rounded-full text-sm"><i class="fa-solid fa-circle-half-stroke"></i></button>
-                <button onclick="logoutUser()" class="p-2 text-red-500 rounded-full text-sm"><i class="fa-solid fa-power-off"></i></button>
+                <button id="toggle-dark-mode-btn" class="p-2 text-gray-600 dark:text-gray-300 rounded-full text-sm"><i class="fa-solid fa-circle-half-stroke"></i></button>
+                <button id="logout-btn" class="p-2 text-red-500 rounded-full text-sm"><i class="fa-solid fa-power-off"></i></button>
             </div>
         </div>
 
@@ -88,7 +88,7 @@
     <div id="view-chat-window" class="fixed inset-0 w-full h-[100dvh] flex flex-col bg-[#efeae2] dark:bg-[#0b141a] chat-bg transform translate-x-full z-20 transition-transform duration-300 pb-[safe-area-inset-bottom]">
         <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-2.5 flex items-center justify-between border-b border-gray-200 dark:border-transparent shrink-0">
             <div class="flex items-center space-x-2 truncate">
-                <button onclick="navigateToSidebar()" class="p-2 -ml-1 text-gray-600 dark:text-gray-300 rounded-full text-sm">
+                <button id="back-to-sidebar-btn" class="p-2 -ml-1 text-gray-600 dark:text-gray-300 rounded-full text-sm">
                     <i class="fa-solid fa-chevron-left text-base"></i>
                 </button>
                 <img id="active-partner-avatar" src="https://placehold.co/100x100/3b82f6/ffffff?text=JS" class="w-9 h-9 rounded-full object-cover shadow-sm">
@@ -99,8 +99,8 @@
             </div>
 
             <div id="teacher-moderator-controls" class="hidden flex items-center space-x-1">
-                <button onclick="clearCurrentChatLog()" class="p-2 text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
-                <button onclick="toggleBlockActiveStudent()" id="block-icon-ui" class="p-2 text-gray-500 dark:text-gray-300 text-xs"><i class="fa-solid fa-ban"></i></button>
+                <button id="clear-chat-btn" class="p-2 text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>
+                <button id="block-icon-ui" class="p-2 text-gray-500 dark:text-gray-300 text-xs"><i class="fa-solid fa-ban"></i></button>
             </div>
         </div>
 
@@ -114,8 +114,8 @@
                 <span class="text-[11px] text-gray-500">Audio wave live...</span>
             </div>
             <div class="flex items-center space-x-2">
-                <button onclick="discardVoiceNote()" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-xs">Cancel</button>
-                <button onclick="finalizeAndSendVoiceNote()" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs">Send</button>
+                <button id="discard-voice-btn" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-xs">Cancel</button>
+                <button id="finalize-voice-btn" class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs">Send</button>
             </div>
         </div>
 
@@ -128,35 +128,35 @@
                     <p class="text-[10px] text-gray-400 font-mono" id="file-label-size">0 KB</p>
                 </div>
             </div>
-            <button onclick="dropQueuedFileAttachment()" class="p-1 text-gray-400 hover:text-red-500"><i class="fa-solid fa-circle-xmark"></i></button>
+            <button id="drop-file-btn" class="p-1 text-gray-400 hover:text-red-500"><i class="fa-solid fa-circle-xmark"></i></button>
         </div>
 
         <!-- CHAT INPUT ZONE -->
         <div class="bg-gray-50 dark:bg-[#202c33] px-3 py-3 flex items-center space-x-2 border-t border-gray-200 dark:border-transparent shrink-0 w-full mb-[safe-area-inset-bottom]">
             <div class="relative">
-                <button onclick="toggleMobileAttachmentOverlay()" class="p-2 text-gray-500 dark:text-gray-300 flex items-center justify-center"><i class="fa-solid fa-plus text-base"></i></button>
+                <button id="toggle-attachment-btn" class="p-2 text-gray-500 dark:text-gray-300 flex items-center justify-center"><i class="fa-solid fa-plus text-base"></i></button>
                 
                 <div id="mobile-attachment-box" class="hidden absolute bottom-14 left-0 bg-white dark:bg-[#233138] rounded-xl shadow-2xl p-1 border border-gray-200 dark:border-transparent w-40 z-50 flex flex-col">
                     <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-[#374248] rounded-lg cursor-pointer text-gray-700 dark:text-gray-200 text-xs">
                         <i class="fa-solid fa-file-pdf text-indigo-500 text-sm"></i>
                         <span>Document</span>
-                        <input type="file" id="input-doc" onchange="processFileQueue(event, 'doc')" class="hidden" accept=".pdf,.doc,.docx,.txt">
+                        <input type="file" id="input-doc" class="hidden" accept=".pdf,.doc,.docx,.txt">
                     </label>
                     <label class="flex items-center space-x-2 p-2 hover:bg-gray-100 dark:hover:bg-[#374248] rounded-lg cursor-pointer text-gray-700 dark:text-gray-200 text-xs">
                         <i class="fa-solid fa-photo-film text-rose-500 text-sm"></i>
                         <span>Media File</span>
-                        <input type="file" id="input-image" onchange="processFileQueue(event, 'media')" class="hidden" accept="image/*,video/*">
+                        <input type="file" id="input-image" class="hidden" accept="image/*,video/*">
                     </label>
                 </div>
             </div>
 
             <div class="flex-1 bg-white dark:bg-[#2a3942] rounded-full px-4 py-1.5 flex items-center border border-gray-100 dark:border-[#374248]">
-                <input type="text" id="input-chat-message" onkeydown="catchInputEnter(event)" oninput="evaluateControlIcons()" placeholder="Type a message..." class="bg-transparent border-none text-sm w-full focus:outline-none text-gray-800 dark:text-gray-100">
+                <input type="text" id="input-chat-message" placeholder="Type a message..." class="bg-transparent border-none text-sm w-full focus:outline-none text-gray-800 dark:text-gray-100">
             </div>
 
             <div class="shrink-0 flex items-center justify-center w-9 h-9">
-                <button onclick="triggerVoiceCapture()" id="action-mic-btn" class="p-2 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow w-8 h-8"><i class="fa-solid fa-microphone text-xs"></i></button>
-                <button onclick="dispatchOutgoingMessage()" id="action-send-btn" class="hidden p-2 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow w-8 h-8"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+                <button id="action-mic-btn" class="p-2 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow w-8 h-8"><i class="fa-solid fa-microphone text-xs"></i></button>
+                <button id="action-send-btn" class="hidden p-2 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow w-8 h-8"><i class="fa-solid fa-paper-plane text-xs"></i></button>
             </div>
         </div>
     </div>
@@ -166,14 +166,12 @@
 <div id="media-lightbox" class="fixed inset-0 bg-black/95 backdrop-blur-md z-50 hidden flex flex-col justify-between p-4 transition-all duration-300">
     <div class="flex items-center justify-between w-full">
         <span id="lightbox-title" class="text-white text-xs font-medium truncate max-w-[70%]">In-App Media File</span>
-        <button onclick="closeInAppMediaViewer()" class="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all">
+        <button id="close-lightbox-btn" class="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all">
             <i class="fa-solid fa-xmark text-lg"></i>
         </button>
     </div>
     
-    <div class="flex-1 flex items-center justify-center w-full max-h-[80vh] overflow-hidden my-4" id="lightbox-payload-container">
-        <!-- Dynamic elements (img, video, or iframe) will render here inside the app -->
-    </div>
+    <div class="flex-1 flex items-center justify-center w-full max-h-[80vh] overflow-hidden my-4" id="lightbox-payload-container"></div>
 
     <div class="text-center w-full pb-4">
         <p id="lightbox-caption" class="text-gray-400 text-[10px] font-mono">Loaded in active memory sandbox</p>
@@ -181,7 +179,7 @@
 </div>
 
 <!-- NOTIFICATION ALERTS & TOASTS -->
-<div id="live-message-alert" onclick="jumpToIncomingAlertChannel()" class="fixed top-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 hidden bg-white dark:bg-[#233138] border border-gray-200 dark:border-transparent p-3.5 rounded-xl shadow-2xl flex items-center space-x-3 transform -translate-y-20 transition-transform duration-300 cursor-pointer active:scale-95">
+<div id="live-message-alert" class="fixed top-4 left-4 right-4 md:left-auto md:right-4 md:w-80 z-50 hidden bg-white dark:bg-[#233138] border border-gray-200 dark:border-transparent p-3.5 rounded-xl shadow-2xl flex items-center space-x-3 transform -translate-y-20 transition-transform duration-300 cursor-pointer active:scale-95">
     <img id="alert-sender-avatar" src="https://placehold.co/100x100/10b981/ffffff?text=S" class="w-9 h-9 rounded-full object-cover">
     <div class="flex-1 truncate">
         <h4 class="text-xs font-bold text-gray-800 dark:text-gray-100 truncate" id="alert-sender-name">New Message</h4>
@@ -201,1150 +199,1235 @@
 // --- Firebase Setup ---
 const firebaseConfig = {
     apiKey: "AIzaSyAUoxKxvJe-3Unxw4XxaUtaQO7kpG9-8j8",
-    databaseURL: "https://educhat-3137e-default-rtdb.europe-west1.firebasedatabase.app", // Use the URL from your json file
+    databaseURL: "https://educhat-3137e-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "educhat-3137e"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-    const TEACHER_RAW = "8240330068";
-    const TEACHER_E164 = "+91" + TEACHER_RAW;
-    const TEACHER_PEER_HEX = "educhat-node-" + btoa("91" + TEACHER_RAW).replace(/=/g, "").toLowerCase();
 
-    let currentAuthTab = "login";
-    let activeProfile = null;
-    let peerInstance = null;
-    let p2pConnection = null;
+const TEACHER_RAW = "8240330068";
+const TEACHER_E164 = "+91" + TEACHER_RAW;
+const TEACHER_PEER_HEX = "educhat-node-" + btoa("91" + TEACHER_RAW).replace(/=/g, "").toLowerCase();
 
-    let selectedPhone = "";
-    let selectedPeerID = "";
-    let selectedName = "";
+let currentAuthTab = "login";
+let activeProfile = null;
+let selectedPhone = "";
+let selectedPeerID = "";
+let selectedName = "";
 
-    let globalHistory = [];
-    let globalBlocks = [];
-    let registryList = []; 
-    let unreadCounts = {}; 
+let globalHistory = [];
+let globalBlocks = [];
+let registryList = [];
+let unreadCounts = {};
 
-    let micRecorderObj = null;
-    let capturedChunks = [];
-    let timerTracker = null;
-    let ticksCounter = 0;
-    let globalAudioStreamRef = null;
-    let queuedAttachedFile = null;
-    let deliveryQueue = [];
-    let deliveryRetryTimer = null;
-    let peerRestartTimer = null;
-    const liveConnections = new Map();
-    const connectingPeers = new Set();
-    const deliveryAttemptTimes = new Map();
-    const DELIVERY_RETRY_DELAY = 12000;
+let micRecorderObj = null;
+let capturedChunks = [];
+let timerTracker = null;
+let ticksCounter = 0;
+let globalAudioStreamRef = null;
+let queuedAttachedFile = null;
 
-    let pendingAlertPhone = "";
-    let pendingAlertPeerId = "";
-    let pendingAlertName = "";
+let pendingAlertPhone = "";
+let pendingAlertPeerId = "";
+let pendingAlertName = "";
 
-    window.onload = function() {
-        const cachedUser = localStorage.getItem("mob_active_profile");
-        const cachedHistory = localStorage.getItem("mob_chat_logs");
-        const cachedBlocks = localStorage.getItem("mob_blocked_nodes");
-        const cachedRegistry = localStorage.getItem("mob_registered_students");
-        const cachedUnreads = localStorage.getItem("mob_unread_counts");
+let uiBindingsInitialized = false;
+let peerRestartTimer = null;
 
-        if (cachedHistory) globalHistory = JSON.parse(cachedHistory);
-        if (cachedBlocks) globalBlocks = JSON.parse(cachedBlocks);
-        if (cachedRegistry) registryList = JSON.parse(cachedRegistry);
-        if (cachedUnreads) unreadCounts = JSON.parse(cachedUnreads);
-        deliveryQueue = JSON.parse(localStorage.getItem("mob_delivery_queue") || "[]");
+const networkState = {
+    peer: null,
+    peerId: null,
+    connections: new Map(),
+    connectingPeers: new Set(),
+    outbox: [],
+    reconnectTimers: new Map(),
+    reconnectAttempts: new Map(),
+    seenMessageIds: new Set(),
+    peerReady: false,
+    lastError: null
+};
 
-        if (cachedUser) {
-            activeProfile = JSON.parse(cachedUser);
-            document.getElementById("auth-screen").classList.add("hidden");
-            requestSystemNotificationPermissions();
-            spinUpApplication();
-        } else {
-            document.getElementById("auth-screen").classList.remove("hidden");
-            switchAuthTab("login");
-        }
+window.addEventListener('load', () => {
+    const cachedUser = localStorage.getItem("mob_active_profile");
+    const cachedHistory = localStorage.getItem("mob_chat_logs");
+    const cachedBlocks = localStorage.getItem("mob_blocked_nodes");
+    const cachedRegistry = localStorage.getItem("mob_registered_students");
+    const cachedUnreads = localStorage.getItem("mob_unread_counts");
 
-        // Keyboard Viewport Adjustment Hack for mobile browsers
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', () => {
-                document.getElementById("view-chat-window").style.height = window.visualViewport.height + 'px';
-                if (selectedPhone !== "") {
-                    document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
-                }
-            });
-        }
-    };
+    if (cachedHistory) globalHistory = JSON.parse(cachedHistory);
+    if (cachedBlocks) globalBlocks = JSON.parse(cachedBlocks);
+    if (cachedRegistry) registryList = JSON.parse(cachedRegistry);
+    if (cachedUnreads) unreadCounts = JSON.parse(cachedUnreads);
 
-    function requestSystemNotificationPermissions() {
-        if ("Notification" in window) {
-            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-                Notification.requestPermission();
+    const savedOutbox = JSON.parse(localStorage.getItem("mob_network_outbox") || "[]");
+    networkState.outbox = Array.isArray(savedOutbox) ? savedOutbox : [];
+
+    const savedSeenIds = JSON.parse(localStorage.getItem("mob_seen_message_ids") || "[]");
+    networkState.seenMessageIds = new Set(Array.isArray(savedSeenIds) ? savedSeenIds : []);
+
+    initializeUIBindings();
+
+    if (cachedUser) {
+        activeProfile = JSON.parse(cachedUser);
+        document.getElementById("auth-screen").classList.add("hidden");
+        requestSystemNotificationPermissions();
+        spinUpApplication();
+    } else {
+        document.getElementById("auth-screen").classList.remove("hidden");
+        switchAuthTab("login");
+    }
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            document.getElementById("view-chat-window").style.height = window.visualViewport.height + 'px';
+            if (selectedPhone !== "") {
+                document.getElementById("message-container").scrollTop = document.getElementById("message-container").scrollHeight;
             }
+        });
+    }
+});
+
+function requestSystemNotificationPermissions() {
+    if ("Notification" in window) {
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission();
         }
     }
+}
 
-    function switchAuthTab(targetTab) {
-        currentAuthTab = targetTab;
-        const lBtn = document.getElementById("tab-login");
-        const sBtn = document.getElementById("tab-signup");
-        const nameField = document.getElementById("auth-name-wrapper");
-        const passWrapper = document.getElementById("teacher-password-wrapper");
+function initializeUIBindings() {
+    if (uiBindingsInitialized) return;
+    uiBindingsInitialized = true;
 
-        if (targetTab === "login") {
-            lBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm";
-            sBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400";
-            nameField.classList.add("hidden");
-            checkForTeacherPhone(document.getElementById("auth-phone-input"));
-        } else {
-            sBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm";
-            lBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400";
-            nameField.classList.remove("hidden");
-            passWrapper.classList.add("hidden"); 
+    document.getElementById("tab-login").addEventListener("click", () => switchAuthTab("login"));
+    document.getElementById("tab-signup").addEventListener("click", () => switchAuthTab("signup"));
+    document.getElementById("auth-phone-input").addEventListener("input", (event) => checkForTeacherPhone(event.target));
+    document.getElementById("auth-submit-btn").addEventListener("click", handleAuthSubmit);
+    document.getElementById("toggle-dark-mode-btn").addEventListener("click", toggleDarkMode);
+    document.getElementById("logout-btn").addEventListener("click", logoutUser);
+    document.getElementById("back-to-sidebar-btn").addEventListener("click", navigateToSidebar);
+    document.getElementById("clear-chat-btn").addEventListener("click", clearCurrentChatLog);
+    document.getElementById("block-icon-ui").addEventListener("click", toggleBlockActiveStudent);
+    document.getElementById("drop-file-btn").addEventListener("click", dropQueuedFileAttachment);
+    document.getElementById("toggle-attachment-btn").addEventListener("click", toggleMobileAttachmentOverlay);
+    document.getElementById("input-doc").addEventListener("change", (event) => processFileQueue(event, "doc"));
+    document.getElementById("input-image").addEventListener("change", (event) => processFileQueue(event, "media"));
+    document.getElementById("input-chat-message").addEventListener("keydown", catchInputEnter);
+    document.getElementById("input-chat-message").addEventListener("input", evaluateControlIcons);
+    document.getElementById("action-mic-btn").addEventListener("click", triggerVoiceCapture);
+    document.getElementById("action-send-btn").addEventListener("click", dispatchOutgoingMessage);
+    document.getElementById("discard-voice-btn").addEventListener("click", discardVoiceNote);
+    document.getElementById("finalize-voice-btn").addEventListener("click", finalizeAndSendVoiceNote);
+    document.getElementById("close-lightbox-btn").addEventListener("click", closeInAppMediaViewer);
+    document.getElementById("live-message-alert").addEventListener("click", jumpToIncomingAlertChannel);
+
+    document.getElementById("chat-list-container").addEventListener("click", (event) => {
+        const target = event.target.closest("[data-action='launch-thread']");
+        if (!target) return;
+        launchMobileThread(target.dataset.phone, target.dataset.peerId, target.dataset.name);
+    });
+
+    document.getElementById("message-container").addEventListener("click", (event) => {
+        const mediaTarget = event.target.closest("[data-action='open-media']");
+        if (mediaTarget) {
+            openInAppMediaViewer(mediaTarget.dataset.dataUrl, mediaTarget.dataset.mediaType, mediaTarget.dataset.filename);
+            return;
         }
-        document.getElementById("auth-error-box").classList.add("hidden");
-    }
-
-    function checkForTeacherPhone(el) {
-        if (currentAuthTab !== "login") return;
-        const clean = cleanPhoneInput(el.value);
-        const wrapper = document.getElementById("teacher-password-wrapper");
-        if (clean === TEACHER_E164) {
-            wrapper.classList.remove("hidden");
-        } else {
-            wrapper.classList.add("hidden");
+        const audioTarget = event.target.closest("[data-action='play-audio']");
+        if (audioTarget) {
+            playAudioBlobNode(audioTarget.dataset.audioSrc, audioTarget);
         }
+    });
+}
+
+function switchAuthTab(targetTab) {
+    currentAuthTab = targetTab;
+    const lBtn = document.getElementById("tab-login");
+    const sBtn = document.getElementById("tab-signup");
+    const nameField = document.getElementById("auth-name-wrapper");
+    const passWrapper = document.getElementById("teacher-password-wrapper");
+
+    if (targetTab === "login") {
+        lBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm";
+        sBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400";
+        nameField.classList.add("hidden");
+        checkForTeacherPhone(document.getElementById("auth-phone-input"));
+    } else {
+        sBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all bg-white dark:bg-[#202c33] text-gray-800 dark:text-gray-100 shadow-sm";
+        lBtn.className = "flex-1 py-2 text-xs font-semibold rounded-md transition-all text-gray-500 dark:text-gray-400";
+        nameField.classList.remove("hidden");
+        passWrapper.classList.add("hidden");
+    }
+    document.getElementById("auth-error-box").classList.add("hidden");
+}
+
+function checkForTeacherPhone(el) {
+    if (currentAuthTab !== "login") return;
+    const clean = cleanPhoneInput(el.value);
+    const wrapper = document.getElementById("teacher-password-wrapper");
+    if (clean === TEACHER_E164) {
+        wrapper.classList.remove("hidden");
+    } else {
+        wrapper.classList.add("hidden");
+    }
+}
+
+function cleanPhoneInput(raw) {
+    let digits = raw.replace(/[\s\(\)\-+]/g, "");
+    if (digits.length === 10) digits = "91" + digits;
+    return "+" + digits;
+}
+
+function handleAuthSubmit() {
+    const nameVal = document.getElementById("auth-name-input").value.trim();
+    const phoneVal = document.getElementById("auth-phone-input").value.trim();
+    const passVal = document.getElementById("auth-teacher-pass").value.trim();
+    const errorBox = document.getElementById("auth-error-box");
+    const errorTxt = document.getElementById("auth-error-msg");
+
+    if (!phoneVal || (currentAuthTab === "signup" && !nameVal)) {
+        errorTxt.innerText = "Please complete all fields.";
+        errorBox.classList.remove("hidden");
+        return;
     }
 
-    function cleanPhoneInput(raw) {
-        let digits = raw.replace(/[\s\(\)\-+]/g, "");
-        if (digits.length === 10) digits = "91" + digits;
-        return "+" + digits;
-    }
+    const cleanPhone = cleanPhoneInput(phoneVal);
+    const digitsOnly = cleanPhone.replace("+", "");
 
-    function handleAuthSubmit() {
-        const nameVal = document.getElementById("auth-name-input").value.trim();
-        const phoneVal = document.getElementById("auth-phone-input").value.trim();
-        const passVal = document.getElementById("auth-teacher-pass").value.trim();
-        const errorBox = document.getElementById("auth-error-box");
-        const errorTxt = document.getElementById("auth-error-msg");
-
-        if (!phoneVal || (currentAuthTab === "signup" && !nameVal)) {
-            errorTxt.innerText = "Please complete all fields.";
+    if (cleanPhone === TEACHER_E164 && currentAuthTab === "login") {
+        if (passVal !== "Teacher123") {
+            errorTxt.innerText = "Invalid credentials for Jitendra Swain.";
             errorBox.classList.remove("hidden");
             return;
         }
+        activeProfile = { name: "Jitendra Swain", phone: TEACHER_E164, peerId: TEACHER_PEER_HEX, isTeacher: true };
+        requestSystemNotificationPermissions();
+        saveProfileAndLaunch();
+        return;
+    }
 
-        const cleanPhone = cleanPhoneInput(phoneVal);
-        const digitsOnly = cleanPhone.replace("+", "");
-
-        if (cleanPhone === TEACHER_E164 && currentAuthTab === "login") {
-            if (passVal !== "Teacher123") {
-                errorTxt.innerText = "Invalid credentials for Jitendra Swain.";
-                errorBox.classList.remove("hidden");
-                return;
-            }
-            activeProfile = { name: "Jitendra Swain", phone: TEACHER_E164, peerId: TEACHER_PEER_HEX, isTeacher: true };
-            requestSystemNotificationPermissions();
-            saveProfileAndLaunch();
+    if (currentAuthTab === "signup") {
+        if (cleanPhone === TEACHER_E164) {
+            errorTxt.innerText = "Teacher profiles must sign in via Log In tab.";
+            errorBox.classList.remove("hidden");
             return;
         }
-
-        if (currentAuthTab === "signup") {
-            if (cleanPhone === TEACHER_E164) {
-                errorTxt.innerText = "Teacher profiles must sign in via Log In tab.";
-                errorBox.classList.remove("hidden");
-                return;
-            }
-            const registered = registryList.some(s => s.phone === cleanPhone);
-            if (registered) {
-                errorTxt.innerText = "This node number is already registered. Choose Log In.";
-                errorBox.classList.remove("hidden");
-                return;
-            }
-            const newPeerId = "educhat-node-" + btoa(digitsOnly).replace(/=/g, "").toLowerCase();
-            const freshStudent = { name: nameVal, phone: cleanPhone, peerId: newPeerId, isTeacher: false };
-            
-            registryList.push(freshStudent);
-            localStorage.setItem("mob_registered_students", JSON.stringify(registryList));
-            activeProfile = freshStudent;
-            requestSystemNotificationPermissions();
-            saveProfileAndLaunch();
-        } else {
-            const student = registryList.find(s => s.phone === cleanPhone);
-            if (!student) {
-                const newPeerId = "educhat-node-" + btoa(digitsOnly).replace(/=/g, "").toLowerCase();
-                const implicitStudent = { name: "Student " + cleanPhone.slice(-4), phone: cleanPhone, peerId: newPeerId, isTeacher: false };
-                registryList.push(implicitStudent);
-                localStorage.setItem("mob_registered_students", JSON.stringify(registryList));
-                activeProfile = implicitStudent;
-            } else {
-                activeProfile = student;
-            }
-            requestSystemNotificationPermissions();
-            saveProfileAndLaunch();
+        const registered = registryList.some(s => s.phone === cleanPhone);
+        if (registered) {
+            errorTxt.innerText = "This node number is already registered. Choose Log In.";
+            errorBox.classList.remove("hidden");
+            return;
         }
+        const newPeerId = "educhat-node-" + btoa(digitsOnly).replace(/=/g, "").toLowerCase();
+        const freshStudent = { name: nameVal, phone: cleanPhone, peerId: newPeerId, isTeacher: false };
+        registryList.push(freshStudent);
+        localStorage.setItem("mob_registered_students", JSON.stringify(registryList));
+        activeProfile = freshStudent;
+        requestSystemNotificationPermissions();
+        saveProfileAndLaunch();
+    } else {
+        const student = registryList.find(s => s.phone === cleanPhone);
+        if (!student) {
+            const newPeerId = "educhat-node-" + btoa(digitsOnly).replace(/=/g, "").toLowerCase();
+            const implicitStudent = { name: "Student " + cleanPhone.slice(-4), phone: cleanPhone, peerId: newPeerId, isTeacher: false };
+            registryList.push(implicitStudent);
+            localStorage.setItem("mob_registered_students", JSON.stringify(registryList));
+            activeProfile = implicitStudent;
+        } else {
+            activeProfile = student;
+        }
+        requestSystemNotificationPermissions();
+        saveProfileAndLaunch();
     }
+}
 
-    function saveProfileAndLaunch() {
-        localStorage.setItem("mob_active_profile", JSON.stringify(activeProfile));
-        document.getElementById("auth-screen").classList.add("hidden");
-        spinUpApplication();
-    }
+function saveProfileAndLaunch() {
+    localStorage.setItem("mob_active_profile", JSON.stringify(activeProfile));
+    document.getElementById("auth-screen").classList.add("hidden");
+    spinUpApplication();
+}
 
-    function spinUpApplication() {
+function spinUpApplication() {
     document.getElementById("my-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
     document.getElementById("my-name-display").innerText = activeProfile.name;
     document.getElementById("my-role-badge").innerText = activeProfile.isTeacher ? "Teacher Module" : "Student Module";
     populateConversationsGrid();
     mountPeerNodePipelines();
-    listenForFirebaseMessages(); // <-- ADD THIS LINE
+    listenForFirebaseMessages();
 }
 
-    function populateConversationsGrid() {
-        const listWrapper = document.getElementById("chat-list-container");
-        listWrapper.innerHTML = "";
+function populateConversationsGrid() {
+    const listWrapper = document.getElementById("chat-list-container");
+    listWrapper.innerHTML = "";
 
-        if (activeProfile.isTeacher) {
-            const uniqueStudentsMap = {};
-            globalHistory.forEach(m => { if (m.threadOwner && m.threadOwner !== TEACHER_E164) uniqueStudentsMap[m.threadOwner] = m.senderName || "Student Log"; });
-            registryList.forEach(s => { uniqueStudentsMap[s.phone] = s.name; });
+    if (activeProfile.isTeacher) {
+        const uniqueStudentsMap = {};
+        globalHistory.forEach(m => { if (m.threadOwner && m.threadOwner !== TEACHER_E164) uniqueStudentsMap[m.threadOwner] = m.senderName || "Student Log"; });
+        registryList.forEach(s => { uniqueStudentsMap[s.phone] = s.name; });
 
-            const structuralKeys = Object.keys(uniqueStudentsMap);
-            if (structuralKeys.length === 0) {
-                listWrapper.innerHTML = `<div class="p-8 text-center text-gray-400 text-xs mt-6">Awaiting student synchronization channels...</div>`;
-            } else {
-                structuralKeys.forEach(pNum => {
-                    const sName = uniqueStudentsMap[pNum];
-                    const subset = globalHistory.filter(m => m.threadOwner === pNum);
-                    const lastMsg = subset[subset.length - 1];
-                    let lastString = "Tap to open chat room";
-                    if (lastMsg) {
-                        if (lastMsg.type === 'file') {
-                            if (lastMsg.content && lastMsg.content.startsWith('data:image/')) lastString = "📸 Photo preview";
-                            else if (lastMsg.content && lastMsg.content.startsWith('data:video/')) lastString = "🎥 Video clip";
-                            else lastString = `📄 ${lastMsg.filename}`;
-                        } else if (lastMsg.type === 'voice') {
-                            lastString = '🎙️ Voice Note';
-                        } else {
-                            lastString = lastMsg.content;
-                        }
-                    }
-                    const peerTarget = "educhat-node-" + btoa(pNum.replace("+", "")).replace(/=/g, "").toLowerCase();
-                    const blocked = globalBlocks.includes(peerTarget);
-                    const unreadCount = unreadCounts[pNum] || 0;
-
-                    listWrapper.innerHTML += `
-                        <div onclick="launchMobileThread('${pNum}', '${peerTarget}', '${sName}')" class="p-4 flex items-center justify-between border-b border-gray-100 dark:border-[#222d34] active:bg-gray-50 dark:active:bg-[#1f2c34] cursor-pointer">
-                            <div class="flex items-center space-x-3 truncate">
-                                <div class="relative shrink-0">
-                                    <img src="https://placehold.co/100x100/10b981/ffffff?text=S" class="w-10 h-10 rounded-full object-cover shadow-sm">
-                                    ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-md animate-pulse">${unreadCount}</span>` : ''}
-                                </div>
-                                <div class="truncate">
-                                    <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-100 flex items-center ${unreadCount > 0 ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''}">${sName} ${blocked ? '<span class="text-[9px] bg-red-100 text-red-700 font-bold px-1 rounded ml-1">BLOCKED</span>':''}</h4>
-                                    <p class="text-[11px] ${unreadCount > 0 ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-400'} truncate mt-0.5">${escapeHtml(lastString)}</p>
-                                </div>
-                            </div>
-                            <span class="text-[9px] text-gray-400 font-mono shrink-0">${pNum}</span>
-                        </div>`;
-                });
-            }
+        const structuralKeys = Object.keys(uniqueStudentsMap);
+        if (structuralKeys.length === 0) {
+            listWrapper.innerHTML = '<div class="p-8 text-center text-gray-400 text-xs mt-6">Awaiting student synchronization channels...</div>';
         } else {
-            const subset = globalHistory.filter(m => m.threadOwner === TEACHER_E164);
-            const lastMsg = subset[subset.length - 1];
-            let lastString = "Tap to connect with your instructor";
-            if (lastMsg) {
-                if (lastMsg.type === 'file') {
-                    if (lastMsg.content && lastMsg.content.startsWith('data:image/')) lastString = "📸 Photo preview";
-                    else if (lastMsg.content && lastMsg.content.startsWith('data:video/')) lastString = "🎥 Video clip";
-                    else lastString = `📄 ${lastMsg.filename}`;
-                } else if (lastMsg.type === 'voice') {
-                    lastString = '🎙️ Voice Note';
-                } else {
-                    lastString = lastMsg.content;
+            structuralKeys.forEach(pNum => {
+                const sName = uniqueStudentsMap[pNum];
+                const subset = globalHistory.filter(m => m.threadOwner === pNum);
+                const lastMsg = subset[subset.length - 1];
+                let lastString = "Tap to open chat room";
+                if (lastMsg) {
+                    if (lastMsg.type === 'file') {
+                        if (lastMsg.content && lastMsg.content.startsWith('data:image/')) lastString = "📸 Photo preview";
+                        else if (lastMsg.content && lastMsg.content.startsWith('data:video/')) lastString = "🎥 Video clip";
+                        else lastString = `📄 ${lastMsg.filename}`;
+                    } else if (lastMsg.type === 'voice') {
+                        lastString = '🎙️ Voice Note';
+                    } else {
+                        lastString = lastMsg.content;
+                    }
                 }
-            }
-            const unreadCount = unreadCounts[TEACHER_E164] || 0;
+                const peerTarget = "educhat-node-" + btoa(pNum.replace("+", "")).replace(/=/g, "").toLowerCase();
+                const blocked = globalBlocks.includes(peerTarget);
+                const unreadCount = unreadCounts[pNum] || 0;
 
-            listWrapper.innerHTML = `
-                <div onclick="launchMobileThread('${TEACHER_E164}', '${TEACHER_PEER_HEX}', 'Jitendra Swain')" class="p-4 flex items-center justify-between border-b border-gray-100 dark:border-[#222d34] active:bg-gray-50 dark:active:bg-[#1f2c34] cursor-pointer">
+                const item = document.createElement("div");
+                item.className = "p-4 flex items-center justify-between border-b border-gray-100 dark:border-[#222d34] active:bg-gray-50 dark:active:bg-[#1f2c34] cursor-pointer";
+                item.dataset.action = "launch-thread";
+                item.dataset.phone = pNum;
+                item.dataset.peerId = peerTarget;
+                item.dataset.name = sName;
+                item.innerHTML = `
                     <div class="flex items-center space-x-3 truncate">
                         <div class="relative shrink-0">
-                            <img src="https://placehold.co/100x100/3b82f6/ffffff?text=JS" class="w-10 h-10 rounded-full object-cover shadow-sm">
+                            <img src="https://placehold.co/100x100/10b981/ffffff?text=S" class="w-10 h-10 rounded-full object-cover shadow-sm">
                             ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-md animate-pulse">${unreadCount}</span>` : ''}
                         </div>
                         <div class="truncate">
-                            <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-100 flex items-center ${unreadCount > 0 ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''}">Jitendra Swain <span class="text-[9px] bg-blue-100 text-blue-800 rounded px-1.5 py-0.5 ml-1 font-bold">INSTRUCTOR</span></h4>
+                            <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-100 flex items-center ${unreadCount > 0 ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''}">${escapeHtml(sName)} ${blocked ? '<span class="text-[9px] bg-red-100 text-red-700 font-bold px-1 rounded ml-1">BLOCKED</span>':''}</h4>
                             <p class="text-[11px] ${unreadCount > 0 ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-400'} truncate mt-0.5">${escapeHtml(lastString)}</p>
                         </div>
                     </div>
-                    <span class="text-[9px] text-gray-400 font-mono shrink-0">${TEACHER_E164}</span>
-                </div>`;
+                    <span class="text-[9px] text-gray-400 font-mono shrink-0">${escapeHtml(pNum)}</span>`;
+                listWrapper.appendChild(item);
+            });
         }
-    }
-
-    function mountPeerNodePipelines() {
-        clearTimeout(peerRestartTimer);
-        clearInterval(deliveryRetryTimer);
-        if (peerInstance) peerInstance.destroy();
-        startPeerNode();
-        deliveryRetryTimer = setInterval(attemptQueuedDeliveries, 10000);
-        window.addEventListener('online', attemptQueuedDeliveries, { once: true });
-    }
-
-    function startPeerNode() {
-        if (!activeProfile) return;
-        peerInstance = new Peer(activeProfile.peerId, {
-            host: '0.peerjs.com',
-            port: 443,
-            path: '/',
-            secure: true,
-            debug: 1,
-            config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
-        });
-        
-        peerInstance.on('open', () => {
-            document.getElementById("node-status").innerText = "🌐 Connection Node Pipeline Operational";
-            document.getElementById("node-status").className = "text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
-            
-            if (!activeProfile.isTeacher) connectToPeer(TEACHER_PEER_HEX, true);
-            attemptQueuedDeliveries();
-        });
-
-        peerInstance.on('connection', (conn) => {
-            if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) { setTimeout(() => conn.close(), 200); return; }
-            p2pConnection = conn;
-            wireConnection(conn);
-            conn.on('open', () => {
-                connectingPeers.delete(conn.peer);
-                liveConnections.set(conn.peer, conn);
-                sendQueuedOnConnection(conn);
-            });
-            conn.on('close', () => {
-                if (liveConnections.get(conn.peer) === conn) liveConnections.delete(conn.peer);
-            });
-        });
-
-        peerInstance.on('error', (error) => {
-            const status = document.getElementById("node-status");
-            if (error && error.type === 'unavailable-id') {
-                status.innerText = "This profile is already open in another tab or device";
-                status.className = "text-[11px] font-medium text-rose-600 dark:text-rose-400";
-                return;
-            }
-            // A missing recipient is normal when the teacher/student is offline.
-            // Do not destroy this peer: it is still connected to the signalling server.
-            if (error && (error.type === 'peer-unavailable' || error.type === 'webrtc')) {
-                const partnerStatus = document.getElementById("active-partner-status");
-                if (partnerStatus) partnerStatus.innerText = "Offline — messages will send when they return";
-                return;
-            }
-            const reason = error && error.type ? ` (${error.type})` : '';
-            status.innerText = `Reconnecting secure link${reason} — messages stay queued`;
-            status.className = "text-[11px] font-medium text-amber-600 dark:text-amber-400";
-            if (peerInstance) peerInstance.destroy();
-            clearTimeout(peerRestartTimer);
-            peerRestartTimer = setTimeout(startPeerNode, 5000);
-        });
-
-        peerInstance.on('disconnected', () => {
-            const status = document.getElementById("node-status");
-            status.innerText = "Secure link interrupted — reconnecting";
-            status.className = "text-[11px] font-medium text-amber-600 dark:text-amber-400";
-            if (peerInstance && !peerInstance.destroyed) {
-                peerInstance.reconnect();
-                clearTimeout(peerRestartTimer);
-                peerRestartTimer = setTimeout(() => {
-                    if (peerInstance && peerInstance.disconnected) startPeerNode();
-                }, 5000);
-            }
-        });
-    }
-
-    function messageId() {
-        return (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    }
-
-    function saveDeliveryQueue() {
-        localStorage.setItem("mob_delivery_queue", JSON.stringify(deliveryQueue));
-    }
-
-    function queueForDelivery(payload, peerId) {
-    payload.messageId = payload.messageId || messageId();
-    
-    // Attempt P2P first
-    const conn = liveConnections.get(peerId);
-    if (conn && conn.open) {
-        conn.send(payload);
     } else {
-        // Fallback: Store in Firebase under the recipient's peerId
-        db.ref('queues/' + peerId + '/' + payload.messageId).set(payload);
-        invokeDeviceToast("Recipient offline. Message cached in cloud.", false);
+        const subset = globalHistory.filter(m => m.threadOwner === TEACHER_E164);
+        const lastMsg = subset[subset.length - 1];
+        let lastString = "Tap to connect with your instructor";
+        if (lastMsg) {
+            if (lastMsg.type === 'file') {
+                if (lastMsg.content && lastMsg.content.startsWith('data:image/')) lastString = "📸 Photo preview";
+                else if (lastMsg.content && lastMsg.content.startsWith('data:video/')) lastString = "🎥 Video clip";
+                else lastString = `📄 ${lastMsg.filename}`;
+            } else if (lastMsg.type === 'voice') {
+                lastString = '🎙️ Voice Note';
+            } else {
+                lastString = lastMsg.content;
+            }
+        }
+        const unreadCount = unreadCounts[TEACHER_E164] || 0;
+
+        const item = document.createElement("div");
+        item.className = "p-4 flex items-center justify-between border-b border-gray-100 dark:border-[#222d34] active:bg-gray-50 dark:active:bg-[#1f2c34] cursor-pointer";
+        item.dataset.action = "launch-thread";
+        item.dataset.phone = TEACHER_E164;
+        item.dataset.peerId = TEACHER_PEER_HEX;
+        item.dataset.name = "Jitendra Swain";
+        item.innerHTML = `
+            <div class="flex items-center space-x-3 truncate">
+                <div class="relative shrink-0">
+                    <img src="https://placehold.co/100x100/3b82f6/ffffff?text=JS" class="w-10 h-10 rounded-full object-cover shadow-sm">
+                    ${unreadCount > 0 ? `<span class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-md animate-pulse">${unreadCount}</span>` : ''}
+                </div>
+                <div class="truncate">
+                    <h4 class="font-semibold text-xs text-gray-800 dark:text-gray-100 flex items-center ${unreadCount > 0 ? 'font-bold text-emerald-600 dark:text-emerald-400' : ''}">Jitendra Swain <span class="text-[9px] bg-blue-100 text-blue-800 rounded px-1.5 py-0.5 ml-1 font-bold">INSTRUCTOR</span></h4>
+                    <p class="text-[11px] ${unreadCount > 0 ? 'text-gray-800 dark:text-gray-200 font-medium' : 'text-gray-400'} truncate mt-0.5">${escapeHtml(lastString)}</p>
+                </div>
+            </div>
+            <span class="text-[9px] text-gray-400 font-mono shrink-0">${escapeHtml(TEACHER_E164)}</span>`;
+        listWrapper.appendChild(item);
     }
 }
 
-    function connectToPeer(peerId, requestSync = false) {
-        if (!peerInstance || peerInstance.destroyed || !peerId) return;
-        const existing = liveConnections.get(peerId);
-        if (existing && existing.open) {
-            if (requestSync) existing.send({ type: "sync_request", senderPhone: activeProfile.phone });
-            sendQueuedOnConnection(existing);
+function mountPeerNodePipelines() {
+    clearTimeout(peerRestartTimer);
+    if (networkState.peer && !networkState.peer.destroyed && networkState.peer.id === activeProfile.peerId) {
+        return;
+    }
+    startPeerNode();
+    window.addEventListener('online', flushOutbox, { once: true });
+}
+
+function startPeerNode() {
+    if (!activeProfile) return;
+    if (networkState.peer && !networkState.peer.destroyed) {
+        return;
+    }
+
+    networkState.peer = new Peer(activeProfile.peerId, {
+        host: '0.peerjs.com',
+        port: 443,
+        path: '/',
+        secure: true,
+        debug: 1,
+        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+    });
+    networkState.peerId = activeProfile.peerId;
+    console.debug('[network] Peer created:', networkState.peerId);
+
+    networkState.peer.on('open', () => {
+        networkState.peerReady = true;
+        document.getElementById("node-status").innerText = "🌐 Connection Node Pipeline Operational";
+        document.getElementById("node-status").className = "text-[11px] font-bold text-emerald-600 dark:text-emerald-400";
+        if (!activeProfile.isTeacher) connectToPeer(TEACHER_PEER_HEX, true);
+        flushOutbox();
+    });
+
+    networkState.peer.on('connection', (conn) => {
+        console.debug('[network] Incoming connection:', conn.peer);
+        if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) {
+            setTimeout(() => conn.close(), 200);
             return;
         }
-        if (connectingPeers.has(peerId)) return;
-        connectingPeers.add(peerId);
-        const conn = peerInstance.connect(peerId, { reliable: true, serialization: 'json' });
-        conn.on('open', () => {
-            connectingPeers.delete(peerId);
-            liveConnections.set(peerId, conn);
-            p2pConnection = conn;
-            wireConnection(conn);
-            if (requestSync) conn.send({ type: "sync_request", senderPhone: activeProfile.phone });
-            sendQueuedOnConnection(conn);
-        });
-        conn.on('error', () => {
-            connectingPeers.delete(peerId);
-            liveConnections.delete(peerId);
+        registerConnection(conn.peer, conn);
+        wireConnection(conn);
+    });
+
+    networkState.peer.on('error', (error) => {
+        networkState.lastError = error;
+        const status = document.getElementById("node-status");
+        if (error && error.type === 'unavailable-id') {
+            status.innerText = "This profile is already open in another tab or device";
+            status.className = "text-[11px] font-medium text-rose-600 dark:text-rose-400";
+            return;
+        }
+        if (error && (error.type === 'peer-unavailable' || error.type === 'webrtc')) {
             const partnerStatus = document.getElementById("active-partner-status");
             if (partnerStatus) partnerStatus.innerText = "Offline — messages will send when they return";
-        });
-        conn.on('close', () => {
-            connectingPeers.delete(peerId);
-            if (liveConnections.get(peerId) === conn) liveConnections.delete(peerId);
-        });
+            return;
+        }
+        const reason = error && error.type ? ` (${error.type})` : '';
+        status.innerText = `Reconnecting secure link${reason} — messages stay queued`;
+        status.className = "text-[11px] font-medium text-amber-600 dark:text-amber-400";
+        if (networkState.peer && !networkState.peer.destroyed) {
+            scheduleReconnectForPeer();
+        }
+    });
+
+    networkState.peer.on('disconnected', () => {
+        networkState.peerReady = false;
+        const status = document.getElementById("node-status");
+        status.innerText = "Secure link interrupted — reconnecting";
+        status.className = "text-[11px] font-medium text-amber-600 dark:text-amber-400";
+        scheduleReconnectForPeer();
+    });
+}
+
+function scheduleReconnectForPeer() {
+    if (networkState.peer && networkState.peer.disconnected && !networkState.peer.destroyed) {
+        console.debug('[network] Reconnecting peer');
+        clearTimeout(peerRestartTimer);
+        peerRestartTimer = setTimeout(() => {
+            if (networkState.peer && networkState.peer.disconnected && !networkState.peer.destroyed) {
+                networkState.peer.reconnect();
+            }
+        }, 1500);
+    }
+}
+
+function registerConnection(remotePeerId, conn) {
+    const existing = networkState.connections.get(remotePeerId);
+    if (existing && existing !== conn) {
+        try { existing.close(); } catch (_) {}
+    }
+    networkState.connections.set(remotePeerId, conn);
+    networkState.connectingPeers.delete(remotePeerId);
+}
+
+function connectToPeer(peerId, requestSync = false) {
+    if (!peerId || !networkState.peer || networkState.peer.destroyed) return;
+    const existingConn = networkState.connections.get(peerId);
+    if (existingConn && existingConn.open) {
+        if (requestSync) existingConn.send({ type: "sync_request", senderPhone: activeProfile.phone });
+        flushOutbox(peerId);
+        return;
+    }
+    if (networkState.connectingPeers.has(peerId)) return;
+    if (existingConn) {
+        networkState.connections.delete(peerId);
+        try { existingConn.close(); } catch (_) {}
     }
 
-    function attemptQueuedDeliveries() {
-        if (!peerInstance || !peerInstance.open || deliveryQueue.length === 0) return;
-        [...new Set(deliveryQueue.map(item => item.peerId))].forEach(peerId => {
-            const conn = liveConnections.get(peerId);
-            if (conn && conn.open) sendQueuedOnConnection(conn);
-            else connectToPeer(peerId);
-        });
-    }
+    networkState.connectingPeers.add(peerId);
+    console.debug('[network] Outgoing connection:', peerId);
+    const conn = networkState.peer.connect(peerId, { reliable: true, serialization: 'json' });
+    registerConnection(peerId, conn);
+    wireConnection(conn);
 
-    function sendQueuedOnConnection(conn) {
-        const now = Date.now();
-        deliveryQueue.filter(item => item.peerId === conn.peer).forEach(item => {
-            const lastAttempt = deliveryAttemptTimes.get(item.payload.messageId) || 0;
-            if (now - lastAttempt < DELIVERY_RETRY_DELAY) return;
+    conn.on('open', () => {
+        networkState.connectingPeers.delete(peerId);
+        console.debug('[network] Connection opened:', peerId);
+        if (requestSync) conn.send({ type: "sync_request", senderPhone: activeProfile.phone });
+        flushOutbox(peerId);
+    });
+
+    conn.on('error', (error) => {
+        networkState.connectingPeers.delete(peerId);
+        networkState.connections.delete(peerId);
+        console.debug('[network] Connection error:', peerId, error?.type || error);
+        scheduleReconnect(peerId);
+    });
+
+    conn.on('close', () => {
+        networkState.connectingPeers.delete(peerId);
+        if (networkState.connections.get(peerId) === conn) {
+            networkState.connections.delete(peerId);
+        }
+        console.debug('[network] Connection closed:', peerId);
+        scheduleReconnect(peerId);
+    });
+}
+
+function scheduleReconnect(peerId) {
+    if (!peerId || networkState.reconnectTimers.has(peerId)) return;
+    const attempt = networkState.reconnectAttempts.get(peerId) || 0;
+    const delay = Math.min(1000 * Math.pow(2, attempt), 15000);
+    networkState.reconnectAttempts.set(peerId, attempt + 1);
+    console.debug('[network] Reconnecting:', peerId, 'in', delay + 'ms');
+    const timer = setTimeout(() => {
+        networkState.reconnectTimers.delete(peerId);
+        if (networkState.peer && !networkState.peer.destroyed) {
+            connectToPeer(peerId);
+        }
+    }, delay);
+    networkState.reconnectTimers.set(peerId, timer);
+}
+
+function wireConnection(conn) {
+    const peerId = conn.peer;
+    conn.on('data', (payload) => {
+        if (payload && payload.type === 'delivery_ack') {
+            removeOutboxMessage(payload.id);
+            return;
+        }
+        if (activeProfile.isTeacher && globalBlocks.includes(peerId)) return;
+        ingestIncomingPayload(payload, peerId);
+        if (payload && payload.id) {
+            try { conn.send({ type: 'delivery_ack', id: payload.id }); } catch (_) {}
+        }
+    });
+
+    conn.on('open', () => {
+        console.debug('[network] Connection live:', peerId);
+        flushOutbox(peerId);
+    });
+}
+
+function messageId() {
+    return (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+}
+
+function persistOutbox() {
+    localStorage.setItem('mob_network_outbox', JSON.stringify(networkState.outbox));
+    localStorage.setItem('mob_seen_message_ids', JSON.stringify([...networkState.seenMessageIds].slice(-20000)));
+}
+
+function enqueueOutgoingMessage(payload, remotePeerId) {
+    if (!remotePeerId) return;
+    const messageIdValue = payload.id || messageId();
+    if (networkState.seenMessageIds.has(messageIdValue)) return;
+    networkState.seenMessageIds.add(messageIdValue);
+    const item = { id: messageIdValue, remotePeerId, payload, createdAt: Date.now() };
+    networkState.outbox.push(item);
+    persistOutbox();
+    console.debug('[network] Message queued:', item.id, remotePeerId);
+    flushOutbox(remotePeerId);
+}
+
+function removeOutboxMessage(messageIdValue) {
+    const before = networkState.outbox.length;
+    networkState.outbox = networkState.outbox.filter(item => item.id !== messageIdValue);
+    if (networkState.outbox.length !== before) {
+        persistOutbox();
+    }
+}
+
+function flushOutbox(remotePeerId = null) {
+    const targets = remotePeerId ? [remotePeerId] : Array.from(new Set(networkState.outbox.map(item => item.remotePeerId)));
+    if (!targets.length) return;
+
+    const remaining = [];
+    for (const item of networkState.outbox) {
+        const target = item.remotePeerId;
+        if (remotePeerId && target !== remotePeerId) {
+            remaining.push(item);
+            continue;
+        }
+        const conn = networkState.connections.get(target);
+        if (conn && conn.open) {
             try {
                 conn.send(item.payload);
-                deliveryAttemptTimes.set(item.payload.messageId, now);
-            } catch (_) { /* retry next time */ }
-        });
-    }
-
-    function wireConnection(conn) {
-        if (conn.__educhatWired) return;
-        conn.__educhatWired = true;
-        conn.on('data', (payload) => {
-            if (activeProfile.isTeacher && globalBlocks.includes(conn.peer)) return;
-            if (payload.type === "delivery_ack") {
-                deliveryQueue = deliveryQueue.filter(item => item.payload.messageId !== payload.messageId);
-                deliveryAttemptTimes.delete(payload.messageId);
-                saveDeliveryQueue();
-            } else if (payload.type === "sync_request") {
-                handleSyncRequest(conn, payload.senderPhone);
-            } else if (payload.type === "sync_response") {
-                ingestSyncHistory(payload.history || []);
-            } else {
-                ingestIncomingPayload(payload, conn.peer);
-                if (payload.messageId) conn.send({ type: "delivery_ack", messageId: payload.messageId });
+                console.debug('[network] Message handed to connection:', item.id, target);
+                remaining.push(item);
+            } catch (error) {
+                remaining.push(item);
+                console.debug('[network] Send failed, re-queueing:', item.id, target, error);
             }
-        });
-        conn.on('open', () => sendQueuedOnConnection(conn));
-    }
-
-    function handleSyncRequest(conn, senderPhone) {
-        const relativeHistory = globalHistory.filter(m => m.threadOwner === senderPhone);
-        conn.send({ type: "sync_response", history: relativeHistory });
-    }
-
-    function ingestSyncHistory(syncHistory) {
-        syncHistory.forEach(item => {
-            const exist = globalHistory.some(m => m.timestamp === item.timestamp && m.content === item.content);
-            if (!exist) {
-                globalHistory.push(item);
-            }
-        });
-        globalHistory.sort((a,b) => a.timestamp - b.timestamp);
-        localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
-        populateConversationsGrid();
-        if (selectedPhone !== "") {
-            loadSelectedChatMessages();
-        }
-    }
-
-    function ingestIncomingPayload(payload, remotePeerId) {
-        const incomingId = payload.messageId || `${payload.senderPhone}:${payload.timestamp}:${String(payload.content).length}`;
-        if (globalHistory.some(m => m.messageId === incomingId)) return;
-        const associatedPhone = payload.senderPhone;
-        const targetThread = activeProfile.isTeacher ? associatedPhone : TEACHER_E164;
-        
-        const messageEnvelope = {
-            senderPhone: payload.senderPhone,
-            senderName: payload.senderName,
-            threadOwner: targetThread,
-            content: payload.content,
-            type: payload.type || 'text',
-            filename: payload.filename || '',
-            filesize: payload.filesize || '',
-            timestamp: payload.timestamp || Date.now(),
-            messageId: incomingId
-        };
-
-        globalHistory.push(messageEnvelope);
-        localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
-
-        if (selectedPhone === targetThread) {
-            appendSingleMessageUI(messageEnvelope);
-            scrollToChatBottom();
         } else {
-            unreadCounts[targetThread] = (unreadCounts[targetThread] || 0) + 1;
-            localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
-            triggerDeviceBannerAlert(messageEnvelope, targetThread, remotePeerId);
-        }
-        populateConversationsGrid();
-    }
-
-    function triggerDeviceBannerAlert(env, threadKey, peerId) {
-        pendingAlertPhone = threadKey;
-        pendingAlertPeerId = peerId;
-        pendingAlertName = env.senderName;
-
-        let textBody = env.content;
-        if (env.type === 'file') {
-            textBody = env.content.startsWith('data:image/') ? "📸 Sent a Photo" : "📄 Sent a document";
-        } else if (env.type === 'voice') {
-            textBody = "🎙️ Voice Note";
-        }
-
-        document.getElementById("alert-sender-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/10b981/ffffff?text=S" : "https://placehold.co/100x100/3b82f6/ffffff?text=JS";
-        document.getElementById("alert-sender-name").innerText = env.senderName;
-        document.getElementById("alert-sender-body").innerText = textBody;
-
-        const banner = document.getElementById("live-message-alert");
-        banner.classList.remove("hidden");
-        setTimeout(() => { banner.classList.remove("-translate-y-20"); }, 50);
-
-        if ("Notification" in window && Notification.permission === "granted") {
-            new Notification(env.senderName, { body: textBody, icon: "https://placehold.co/100x100/10b981/ffffff?text=E" });
-        }
-
-        setTimeout(() => { dismissIncomingAlertBanner(); }, 6000);
-    }
-
-    function dismissIncomingAlertBanner() {
-        const banner = document.getElementById("live-message-alert");
-        banner.classList.add("-translate-y-20");
-        setTimeout(() => { banner.classList.add("hidden"); }, 300);
-    }
-
-    function jumpToIncomingAlertChannel() {
-        dismissIncomingAlertBanner();
-        if (pendingAlertPhone !== "") {
-            launchMobileThread(pendingAlertPhone, pendingAlertPeerId, pendingAlertName);
+            remaining.push(item);
+            if (!networkState.reconnectTimers.has(target)) {
+                scheduleReconnect(target);
+            }
+            if (networkState.peer && networkState.peer.open) {
+                saveToFirebaseFallback(item.payload, target);
+            }
         }
     }
 
-    function launchMobileThread(phone, peerId, name) {
-        selectedPhone = phone;
-        selectedPeerID = peerId;
-        selectedName = name;
+    networkState.outbox = remaining;
+    persistOutbox();
+}
 
-        unreadCounts[phone] = 0;
+function saveToFirebaseFallback(payload, peerId) {
+    if (!db || !peerId) return;
+    db.ref('queues/' + peerId + '/' + payload.id).set(payload).catch(() => {});
+}
+
+function handleSyncRequest(conn, senderPhone) {
+    const relativeHistory = globalHistory.filter(m => m.threadOwner === senderPhone);
+    conn.send({ type: "sync_response", history: relativeHistory });
+}
+
+function ingestSyncHistory(syncHistory) {
+    syncHistory.forEach(item => {
+        const exist = globalHistory.some(m => m.timestamp === item.timestamp && m.content === item.content);
+        if (!exist) {
+            globalHistory.push(item);
+        }
+    });
+    globalHistory.sort((a,b) => a.timestamp - b.timestamp);
+    localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+    populateConversationsGrid();
+    if (selectedPhone !== "") {
+        loadSelectedChatMessages();
+    }
+}
+
+function ingestIncomingPayload(payload, remotePeerId) {
+    if (!payload) return;
+    const incomingId = payload.id || payload.messageId || `${payload.senderPhone || remotePeerId}:${payload.timestamp || Date.now()}:${String(payload.content || '').length}`;
+    if (networkState.seenMessageIds.has(incomingId)) return;
+    networkState.seenMessageIds.add(incomingId);
+    persistOutbox();
+
+    const associatedPhone = payload.senderPhone;
+    const targetThread = activeProfile.isTeacher ? associatedPhone : TEACHER_E164;
+
+    const messageEnvelope = {
+        senderPhone: payload.senderPhone,
+        senderName: payload.senderName,
+        threadOwner: targetThread,
+        content: payload.content,
+        type: payload.type || 'text',
+        filename: payload.filename || '',
+        filesize: payload.filesize || '',
+        timestamp: payload.timestamp || Date.now(),
+        messageId: incomingId
+    };
+
+    globalHistory.push(messageEnvelope);
+    localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+
+    if (selectedPhone === targetThread) {
+        appendSingleMessageUI(messageEnvelope);
+        scrollToChatBottom();
+    } else {
+        unreadCounts[targetThread] = (unreadCounts[targetThread] || 0) + 1;
         localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
-        populateConversationsGrid();
+        triggerDeviceBannerAlert(messageEnvelope, targetThread, remotePeerId);
+    }
+    populateConversationsGrid();
+}
 
-        document.getElementById("active-partner-avatar").src = phone === TEACHER_E164 ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
-        document.getElementById("active-partner-name").innerText = name;
-        
-        const pStatus = document.getElementById("active-partner-status");
-        pStatus.innerText = "Verifying link...";
-        pStatus.className = "text-[10px] text-gray-500";
+function triggerDeviceBannerAlert(env, threadKey, peerId) {
+    pendingAlertPhone = threadKey;
+    pendingAlertPeerId = peerId;
+    pendingAlertName = env.senderName;
 
-        if (activeProfile.isTeacher) {
-            document.getElementById("teacher-moderator-controls").classList.remove("hidden");
-            const blockBtn = document.getElementById("block-icon-ui");
-            if (globalBlocks.includes(peerId)) {
-                blockBtn.className = "p-2 text-red-500 text-xs";
-                pStatus.innerText = "Blocked from sending content";
-            } else {
-                blockBtn.className = "p-2 text-gray-500 dark:text-gray-300 text-xs";
-                checkDirectP2PLinkStatus();
-            }
-        } else {
-            document.getElementById("teacher-moderator-controls").classList.add("hidden");
-            checkDirectP2PLinkStatus();
-        }
-
-        loadSelectedChatMessages();
-        
-        const win = document.getElementById("view-chat-window");
-        win.classList.remove("translate-x-full");
+    let textBody = env.content;
+    if (env.type === 'file') {
+        textBody = env.content.startsWith('data:image/') ? "📸 Sent a Photo" : "📄 Sent a document";
+    } else if (env.type === 'voice') {
+        textBody = "🎙️ Voice Note";
     }
 
-    function checkDirectP2PLinkStatus() {
-        const pStatus = document.getElementById("active-partner-status");
-        if (!peerInstance) {
-            pStatus.innerText = "Offline";
-            return;
-        }
-        pStatus.innerText = "Attempting Handshake...";
-        
-        const conn = peerInstance.connect(selectedPeerID, { reliable: true });
-        conn.on('open', () => {
-            pStatus.innerText = "Online - Secure Link Active";
-            pStatus.className = "text-[10px] text-emerald-600 dark:text-emerald-400 font-bold";
-        });
-        conn.on('error', () => {
-            pStatus.innerText = "Offline - Host unreachable";
-            pStatus.className = "text-[10px] text-gray-400";
-        });
-        setTimeout(() => {
-            if (pStatus.innerText === "Attempting Handshake..." || pStatus.innerText === "Verifying link...") {
-                pStatus.innerText = "Host dormant (Messages sync on next start)";
-                pStatus.className = "text-[10px] text-amber-600 dark:text-amber-400 font-medium";
-            }
-        }, 3000);
+    document.getElementById("alert-sender-avatar").src = activeProfile.isTeacher ? "https://placehold.co/100x100/10b981/ffffff?text=S" : "https://placehold.co/100x100/3b82f6/ffffff?text=JS";
+    document.getElementById("alert-sender-name").innerText = env.senderName;
+    document.getElementById("alert-sender-body").innerText = textBody;
+
+    const banner = document.getElementById("live-message-alert");
+    banner.classList.remove("hidden");
+    setTimeout(() => { banner.classList.remove("-translate-y-20"); }, 50);
+
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(env.senderName, { body: textBody, icon: "https://placehold.co/100x100/10b981/ffffff?text=E" });
     }
 
-    function loadSelectedChatMessages() {
-        const mContainer = document.getElementById("message-container");
-        mContainer.innerHTML = "";
-        const matches = globalHistory.filter(m => m.threadOwner === selectedPhone);
-        
-        if (matches.length === 0) {
-            mContainer.innerHTML = `
-                <div class="my-auto mx-auto text-center max-w-xs p-6 bg-white/70 dark:bg-[#1e2a30]/50 rounded-2xl backdrop-blur">
-                    <span class="text-3xl">🛡️</span>
-                    <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200 mt-2">End-to-End Encrypted Tunnel</h4>
-                    <p class="text-[10px] text-gray-400 mt-1">This channel links directly to your peer's node. Media files and document assets open inside your sandbox without clogging system downloads.</p>
-                </div>`;
-        } else {
-            matches.forEach(msg => {
-                appendSingleMessageUI(msg);
-            });
-        }
-        scrollToChatBottom();
+    setTimeout(() => { dismissIncomingAlertBanner(); }, 6000);
+}
+
+function dismissIncomingAlertBanner() {
+    const banner = document.getElementById("live-message-alert");
+    banner.classList.add("-translate-y-20");
+    setTimeout(() => { banner.classList.add("hidden"); }, 300);
+}
+
+function jumpToIncomingAlertChannel() {
+    dismissIncomingAlertBanner();
+    if (pendingAlertPhone !== "") {
+        launchMobileThread(pendingAlertPhone, pendingAlertPeerId, pendingAlertName);
     }
+}
 
-    function appendSingleMessageUI(msg) {
-        const mContainer = document.getElementById("message-container");
-        const parsedTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const isMe = msg.senderPhone === activeProfile.phone;
+function launchMobileThread(phone, peerId, name) {
+    selectedPhone = phone;
+    selectedPeerID = peerId;
+    selectedName = name;
 
-        const bubbleWrap = document.createElement("div");
-        bubbleWrap.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'} animate-fade-in`;
+    unreadCounts[phone] = 0;
+    localStorage.setItem("mob_unread_counts", JSON.stringify(unreadCounts));
+    populateConversationsGrid();
 
-        let innerPayloadMarkup = "";
+    document.getElementById("active-partner-avatar").src = phone === TEACHER_E164 ? "https://placehold.co/100x100/3b82f6/ffffff?text=JS" : "https://placehold.co/100x100/10b981/ffffff?text=S";
+    document.getElementById("active-partner-name").innerText = name;
+    
+    const pStatus = document.getElementById("active-partner-status");
+    pStatus.innerText = "Verifying link...";
+    pStatus.className = "text-[10px] text-gray-500";
 
-        if (msg.type === "file") {
-            if (msg.content.startsWith("data:image/")) {
-                // Instagram-Style Photo Frame: Direct in-app display without downloading to files!
-                innerPayloadMarkup = `
-                    <div class="relative max-w-xs rounded-xl overflow-hidden cursor-pointer group" onclick="openInAppMediaViewer('${msg.content}', 'image', '${msg.filename}')">
-                        <img src="${msg.content}" class="max-w-full max-h-56 object-cover rounded-xl transition-all group-hover:brightness-90">
-                        <div class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span class="bg-black/60 text-white rounded-full p-2 text-xs"><i class="fa-solid fa-expand"></i> View</span>
-                        </div>
-                    </div>`;
-            } else if (msg.content.startsWith("data:video/")) {
-                // Instagram-Style Video Frame: Playable straight inside chat window
-                innerPayloadMarkup = `
-                    <div class="relative max-w-xs rounded-xl overflow-hidden cursor-pointer group" onclick="openInAppMediaViewer('${msg.content}', 'video', '${msg.filename}')">
-                        <video src="${msg.content}" class="max-w-full max-h-56 object-cover rounded-xl"></video>
-                        <div class="absolute inset-0 bg-black/30 flex items-center justify-center">
-                            <span class="bg-emerald-600/90 text-white rounded-full w-10 h-10 flex items-center justify-center shadow"><i class="fa-solid fa-play text-xs"></i></span>
-                        </div>
-                    </div>`;
-            } else {
-                // Document Preview Frame
-                innerPayloadMarkup = `
-                    <div onclick="openInAppMediaViewer('${msg.content}', 'document', '${msg.filename}')" class="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-[#111b21]/70 hover:bg-gray-100 dark:hover:bg-[#111b21] rounded-xl cursor-pointer border border-gray-100 dark:border-transparent transition-all">
-                        <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-950/40 rounded-lg flex items-center justify-center shrink-0">
-                            <i class="fa-solid fa-file-pdf text-indigo-500 text-lg"></i>
-                        </div>
-                        <div class="truncate max-w-[150px]">
-                            <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">${msg.filename}</h4>
-                            <span class="text-[9px] text-gray-400 font-mono">${msg.filesize}</span>
-                        </div>
-                        <i class="fa-solid fa-eye text-gray-400 text-xs shrink-0 pl-1"></i>
-                    </div>`;
-            }
-        } else if (msg.type === "voice") {
-            innerPayloadMarkup = `
-                <div class="flex items-center space-x-2.5 py-1">
-                    <button onclick="playAudioBlobNode('${msg.content}', this)" class="w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md transition-all shrink-0">
-                        <i class="fa-solid fa-play text-xs pl-0.5"></i>
-                    </button>
-                    <div class="w-32 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden relative">
-                        <div class="bg-emerald-500 h-full w-0 progress-fill-bar"></div>
-                    </div>
-                    <span class="text-[10px] text-gray-400 font-mono">Audio</span>
-                </div>`;
-        } else {
-            innerPayloadMarkup = `<p class="text-xs leading-relaxed break-words">${escapeHtml(msg.content)}</p>`;
-        }
-
-        bubbleWrap.innerHTML = `
-            <div class="max-w-[75%] rounded-2xl px-3 py-2 shadow-sm ${isMe ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white dark:bg-[#1f2c34] text-gray-800 dark:text-gray-100 rounded-tl-none'}">
-                ${!isMe && activeProfile.isTeacher ? `<p class="text-[9px] font-bold text-emerald-500 mb-1">${msg.senderName}</p>` : ''}
-                ${innerPayloadMarkup}
-                <span class="block text-[8px] mt-1 text-right ${isMe ? 'text-emerald-200' : 'text-gray-400'} font-mono">${parsedTime}</span>
-            </div>`;
-
-        mContainer.appendChild(bubbleWrap);
-    }
-
-    /* --- INSTAGRAM-STYLE INTERACTIVE LIGHTBOX SYSTEM --- */
-    function openInAppMediaViewer(dataUrl, type, filename) {
-        const lightbox = document.getElementById("media-lightbox");
-        const container = document.getElementById("lightbox-payload-container");
-        const title = document.getElementById("lightbox-title");
-        
-        title.innerText = filename || "Internal Media Preview";
-        container.innerHTML = ""; // Clear existing sandbox contents
-        
-        if (type === "image") {
-            const img = document.createElement("img");
-            img.src = dataUrl;
-            img.className = "max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl animate-zoom-in";
-            container.appendChild(img);
-        } 
-        else if (type === "video") {
-            const video = document.createElement("video");
-            video.src = dataUrl;
-            video.controls = true;
-            video.autoplay = true;
-            video.className = "max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl";
-            container.appendChild(video);
-        } 
-        else if (type === "document") {
-            // Documents preview safely without downloading
-            if (dataUrl.startsWith("data:application/pdf")) {
-                const iframe = document.createElement("iframe");
-                iframe.src = dataUrl;
-                iframe.className = "w-full h-[70vh] rounded-lg border-none bg-white";
-                container.appendChild(iframe);
-            } else if (dataUrl.startsWith("data:text/plain")) {
-                // Extract text content from the file url and render in box
-                const rawText = atob(dataUrl.split(",")[1]);
-                const txtBox = document.createElement("div");
-                txtBox.className = "w-full h-[65vh] bg-gray-900 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-y-auto select-text whitespace-pre-wrap";
-                txtBox.innerText = rawText;
-                container.appendChild(txtBox);
-            } else {
-                // Fallback visual message for unrenderable word docs
-                container.innerHTML = `
-                    <div class="text-center text-white space-y-3 p-6 max-w-xs bg-white/5 rounded-2xl backdrop-blur">
-                        <span class="text-4xl">📂</span>
-                        <h4 class="text-sm font-semibold">${filename}</h4>
-                        <p class="text-[10px] text-gray-400">Office format files must be opened on system applications. Press down to export manually.</p>
-                        <a href="${dataUrl}" download="${filename}" class="inline-block mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold">Export Offline File</a>
-                    </div>`;
-            }
-        }
-
-        lightbox.classList.remove("hidden");
-    }
-
-    function closeInAppMediaViewer() {
-        const lightbox = document.getElementById("media-lightbox");
-        const container = document.getElementById("lightbox-payload-container");
-        lightbox.classList.add("hidden");
-        container.innerHTML = ""; // Unloads and releases RAM completely
-    }
-
-    function playAudioBlobNode(audioDataUrl, playBtn) {
-        const player = document.getElementById("audio-player-node");
-        const progress = playBtn.nextElementSibling.firstElementChild;
-        
-        // Check if this audio is already playing
-        if (player.src === audioDataUrl && !player.paused) {
-            player.pause();
-            playBtn.innerHTML = `<i class="fa-solid fa-play text-xs pl-0.5"></i>`;
-            return;
-        }
-
-        // Reset any active players
-        document.querySelectorAll(".progress-fill-bar").forEach(el => el.style.width = '0%');
-        document.querySelectorAll("button i.fa-pause").forEach(icon => {
-            icon.className = "fa-solid fa-play text-xs pl-0.5";
-        });
-
-        player.src = audioDataUrl;
-        player.play();
-        playBtn.innerHTML = `<i class="fa-solid fa-pause text-xs"></i>`;
-
-        player.ontimeupdate = () => {
-            const pct = (player.currentTime / player.duration) * 100;
-            progress.style.width = `${pct}%`;
-        };
-
-        player.onended = () => {
-            progress.style.width = '0%';
-            playBtn.innerHTML = `<i class="fa-solid fa-play text-xs pl-0.5"></i>`;
-        };
-    }
-
-    function navigateToSidebar() {
-        selectedPhone = "";
-        selectedPeerID = "";
-        selectedName = "";
-        const win = document.getElementById("view-chat-window");
-        win.classList.add("translate-x-full");
-        populateConversationsGrid();
-    }
-
-    function toggleMobileAttachmentOverlay() {
-        const box = document.getElementById("mobile-attachment-box");
-        box.classList.toggle("hidden");
-    }
-
-    async function processFileQueue(event, type) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        // Data URLs are ~33% larger than the source. Keep payloads small enough for
-        // PeerJS and local storage, and compress photos before queuing them.
-        const maxBytes = file.type.startsWith("video/") ? 1500 * 1024 : 1024 * 1024;
-        if (file.size > maxBytes && !file.type.startsWith("image/")) {
-            invokeDeviceToast("File is too large for reliable offline sending (video max 1.5 MB; documents max 1 MB)", true);
-            return;
-        }
-
-        try {
-            let dataUrl;
-            let finalSize = file.size;
-            if (file.type.startsWith("image/")) {
-                const compressed = await compressImageForSending(file);
-                dataUrl = compressed.dataUrl;
-                finalSize = compressed.size;
-            } else {
-                dataUrl = await readFileAsDataUrl(file);
-            }
-            queuedAttachedFile = {
-                filename: file.name,
-                filesize: formatBytesLabel(finalSize),
-                dataUrl
-            };
-
-            const preview = document.getElementById("file-attachment-preview");
-            preview.classList.remove("hidden");
-            document.getElementById("file-label-name").innerText = file.name;
-            document.getElementById("file-label-size").innerText = formatBytesLabel(finalSize);
-            const icon = document.getElementById("file-type-icon");
-            icon.innerText = file.type.startsWith("image/") ? "📸" : file.type.startsWith("video/") ? "🎥" : "📄";
-            toggleMobileAttachmentOverlay();
-            evaluateControlIcons();
-        } catch (_) {
-            invokeDeviceToast("Could not prepare that file for sending", true);
-        }
-    }
-
-    function readFileAsDataUrl(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    }
-
-    async function compressImageForSending(file) {
-        const source = await readFileAsDataUrl(file);
-        const image = await new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            img.src = source;
-        });
-        const longestSide = Math.max(image.width, image.height);
-        const scale = Math.min(1, 1280 / longestSide);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(image.width * scale);
-        canvas.height = Math.round(image.height * scale);
-        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
-        const size = Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75);
-        if (size > 1024 * 1024) throw new Error("compressed image is still too large");
-        return { dataUrl, size };
-    }
-
-    /*
-        The former FileReader callback is intentionally replaced by the async
-        preparation above, which prevents an uncompressed multi-megabyte image
-        from being placed in the offline outbox.
-    */
-    function legacyFileReaderCallback() {
-        /* retained only as a harmless compatibility stub */
-        /*
-        const reader = new FileReader();
-        reader.onload = function() {
-            queuedAttachedFile = {
-                filename: file.name,
-                filesize: formatBytesLabel(file.size),
-                dataUrl: reader.result
-            };
-
-            const preview = document.getElementById("file-attachment-preview");
-            preview.classList.remove("hidden");
-            
-            document.getElementById("file-label-name").innerText = file.name;
-            document.getElementById("file-label-size").innerText = formatBytesLabel(file.size);
-            
-            const icon = document.getElementById("file-type-icon");
-            if (file.type.startsWith("image/")) icon.innerText = "📸";
-            else if (file.type.startsWith("video/")) icon.innerText = "🎥";
-            else icon.innerText = "📄";
-
-            toggleMobileAttachmentOverlay();
-            evaluateControlIcons();
-        };
-        */
-    }
-
-    function formatBytesLabel(bytes) {
-        if (bytes < 1024) return bytes + " Bytes";
-        else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-        else return (bytes / 1048576).toFixed(1) + " MB";
-    }
-
-    function dropQueuedFileAttachment() {
-        queuedAttachedFile = null;
-        document.getElementById("file-attachment-preview").classList.add("hidden");
-        document.getElementById("input-doc").value = "";
-        document.getElementById("input-image").value = "";
-        evaluateControlIcons();
-    }
-
-    function catchInputEnter(e) {
-        if (e.key === "Enter") {
-            dispatchOutgoingMessage();
-        }
-    }
-
-    function evaluateControlIcons() {
-        const textVal = document.getElementById("input-chat-message").value.trim();
-        const micBtn = document.getElementById("action-mic-btn");
-        const sendBtn = document.getElementById("action-send-btn");
-
-        if (textVal !== "" || queuedAttachedFile !== null) {
-            micBtn.classList.add("hidden");
-            sendBtn.classList.remove("hidden");
-        } else {
-            sendBtn.classList.add("hidden");
-            micBtn.classList.remove("hidden");
-        }
-    }
-
-    function dispatchOutgoingMessage() {
-        const textVal = document.getElementById("input-chat-message").value.trim();
-        if (textVal === "" && queuedAttachedFile === null) return;
-
-        let finalPayload = {};
-        
-        if (queuedAttachedFile !== null) {
-            finalPayload = {
-                senderPhone: activeProfile.phone,
-                senderName: activeProfile.name,
-                content: queuedAttachedFile.dataUrl,
-                type: "file",
-                filename: queuedAttachedFile.filename,
-                filesize: queuedAttachedFile.filesize,
-                timestamp: Date.now(),
-                messageId: messageId()
-            };
-            dropQueuedFileAttachment();
-        } else {
-            finalPayload = {
-                senderPhone: activeProfile.phone,
-                senderName: activeProfile.name,
-                content: textVal,
-                type: "text",
-                timestamp: Date.now(),
-                messageId: messageId()
-            };
-            document.getElementById("input-chat-message").value = "";
-        }
-
-        const localEnvelope = {
-            ...finalPayload,
-            threadOwner: selectedPhone
-        };
-
-        globalHistory.push(localEnvelope);
-        localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
-        
-        appendSingleMessageUI(localEnvelope);
-        scrollToChatBottom();
-        evaluateControlIcons();
-
-        // P2P transmission
-        queueForDelivery(finalPayload, selectedPeerID);
-        populateConversationsGrid();
-    }
-
-    function triggerVoiceCapture() {
-        if (micRecorderObj && micRecorderObj.state === "recording") {
-            finalizeAndSendVoiceNote();
-            return;
-        }
-
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-            globalAudioStreamRef = stream;
-            micRecorderObj = new MediaRecorder(stream);
-            capturedChunks = [];
-            
-            micRecorderObj.ondataavailable = e => capturedChunks.push(e.data);
-            
-            micRecorderObj.onstop = () => {
-                const audioBlob = new Blob(capturedChunks, { type: 'audio/mp3' });
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = () => {
-                    const base64Audio = reader.result;
-                    
-                    const voicePayload = {
-                        senderPhone: activeProfile.phone,
-                        senderName: activeProfile.name,
-                        content: base64Audio,
-                        type: "voice",
-                        timestamp: Date.now(),
-                        messageId: messageId()
-                    };
-
-                    const envelope = { ...voicePayload, threadOwner: selectedPhone };
-                    globalHistory.push(envelope);
-                    localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
-                    
-                    appendSingleMessageUI(envelope);
-                    scrollToChatBottom();
-
-                    queueForDelivery(voicePayload, selectedPeerID);
-                    populateConversationsGrid();
-                };
-            };
-
-            micRecorderObj.start();
-            document.getElementById("recording-panel").classList.remove("hidden");
-            
-            ticksCounter = 0;
-            document.getElementById("recording-timer").innerText = "00:00";
-            timerTracker = setInterval(() => {
-                ticksCounter++;
-                const m = String(Math.floor(ticksCounter / 60)).padStart(2, '0');
-                const s = String(ticksCounter % 60).padStart(2, '0');
-                document.getElementById("recording-timer").innerText = `${m}:${s}`;
-            }, 1000);
-        }).catch(() => {
-            invokeDeviceToast("Access to local Microphone refused", true);
-        });
-    }
-
-    function finalizeAndSendVoiceNote() {
-        if (micRecorderObj) {
-            micRecorderObj.stop();
-            micRecorderObj = null;
-        }
-        if (globalAudioStreamRef) {
-            globalAudioStreamRef.getTracks().forEach(t => t.stop());
-        }
-        clearInterval(timerTracker);
-        document.getElementById("recording-panel").classList.add("hidden");
-    }
-
-    function discardVoiceNote() {
-        if (micRecorderObj) {
-            micRecorderObj.onstop = null; // Unbind recording execution
-            micRecorderObj.stop();
-            micRecorderObj = null;
-        }
-        if (globalAudioStreamRef) {
-            globalAudioStreamRef.getTracks().forEach(t => t.stop());
-        }
-        clearInterval(timerTracker);
-        document.getElementById("recording-panel").classList.add("hidden");
-        invokeDeviceToast("Recording deleted", false);
-    }
-
-    function scrollToChatBottom() {
-        const container = document.getElementById("message-container");
-        setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
-    }
-
-    function clearCurrentChatLog() {
-        if (!confirm("Remove this thread history permanently?")) return;
-        globalHistory = globalHistory.filter(m => m.threadOwner !== selectedPhone);
-        localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
-        loadSelectedChatMessages();
-        populateConversationsGrid();
-    }
-
-    function toggleBlockActiveStudent() {
-        const index = globalBlocks.indexOf(selectedPeerID);
+    if (activeProfile.isTeacher) {
+        document.getElementById("teacher-moderator-controls").classList.remove("hidden");
         const blockBtn = document.getElementById("block-icon-ui");
-        
-        if (index > -1) {
-            globalBlocks.splice(index, 1);
-            blockBtn.className = "p-2 text-gray-500 dark:text-gray-300 text-xs";
-            invokeDeviceToast("Student pipeline restored", false);
-        } else {
-            globalBlocks.push(selectedPeerID);
+        if (globalBlocks.includes(peerId)) {
             blockBtn.className = "p-2 text-red-500 text-xs";
-            invokeDeviceToast("Student pipeline frozen", true);
-        }
-        localStorage.setItem("mob_blocked_nodes", JSON.stringify(globalBlocks));
-        launchMobileThread(selectedPhone, selectedPeerID, selectedName);
-    }
-
-    function toggleDarkMode() {
-        document.documentElement.classList.toggle("dark");
-    }
-
-    function logoutUser() {
-        if (!confirm("Log out from local profile? (All offline logs will persist)")) return;
-        localStorage.removeItem("mob_active_profile");
-        activeProfile = null;
-        if (peerInstance) {
-            peerInstance.destroy();
-            peerInstance = null;
-        }
-        document.getElementById("auth-screen").classList.remove("hidden");
-    }
-
-    function invokeDeviceToast(text, isAlert) {
-        const toast = document.getElementById("mobile-toast");
-        const box = document.getElementById("toast-text-box");
-        const icon = document.getElementById("toast-icon-box");
-
-        box.innerText = text;
-        if (isAlert) {
-            icon.className = "fa-solid fa-triangle-exclamation text-rose-500";
+            pStatus.innerText = "Blocked from sending content";
         } else {
-            icon.className = "fa-solid fa-circle-check text-emerald-500";
+            blockBtn.className = "p-2 text-gray-500 dark:text-gray-300 text-xs";
+            connectToPeer(peerId, false);
         }
-
-        toast.classList.remove("hidden");
-        setTimeout(() => { toast.classList.add("hidden"); }, 3000);
+    } else {
+        document.getElementById("teacher-moderator-controls").classList.add("hidden");
+        connectToPeer(peerId, false);
     }
 
-    function escapeHtml(text) {
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-        return String(text).replace(/[&<>"']/g, m => map[m]);
+    loadSelectedChatMessages();
+    const win = document.getElementById("view-chat-window");
+    win.classList.remove("translate-x-full");
+}
+
+function loadSelectedChatMessages() {
+    const mContainer = document.getElementById("message-container");
+    mContainer.innerHTML = "";
+    const matches = globalHistory.filter(m => m.threadOwner === selectedPhone);
+    
+    if (matches.length === 0) {
+        mContainer.innerHTML = `
+            <div class="my-auto mx-auto text-center max-w-xs p-6 bg-white/70 dark:bg-[#1e2a30]/50 rounded-2xl backdrop-blur">
+                <span class="text-3xl">🛡️</span>
+                <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200 mt-2">End-to-End Encrypted Tunnel</h4>
+                <p class="text-[10px] text-gray-400 mt-1">This channel links directly to your peer's node. Media files and document assets open inside your sandbox without clogging system downloads.</p>
+            </div>`;
+    } else {
+        matches.forEach(msg => appendSingleMessageUI(msg));
     }
-    function listenForFirebaseMessages() {
+    scrollToChatBottom();
+}
+
+function appendSingleMessageUI(msg) {
+    const mContainer = document.getElementById("message-container");
+    const parsedTime = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const isMe = msg.senderPhone === activeProfile.phone;
+
+    const bubbleWrap = document.createElement("div");
+    bubbleWrap.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'} animate-fade-in`;
+
+    const bubble = document.createElement("div");
+    bubble.className = `max-w-[75%] rounded-2xl px-3 py-2 shadow-sm ${isMe ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white dark:bg-[#1f2c34] text-gray-800 dark:text-gray-100 rounded-tl-none'}`;
+
+    if (!isMe && activeProfile.isTeacher) {
+        const sender = document.createElement("p");
+        sender.className = "text-[9px] font-bold text-emerald-500 mb-1";
+        sender.textContent = msg.senderName || "";
+        bubble.appendChild(sender);
+    }
+
+    if (msg.type === "file") {
+        const preview = document.createElement("div");
+        preview.className = "relative max-w-xs rounded-xl overflow-hidden cursor-pointer group";
+        preview.dataset.action = "open-media";
+        preview.dataset.mediaType = (msg.content || '').startsWith('data:image/') ? 'image' : (msg.content || '').startsWith('data:video/') ? 'video' : 'document';
+        preview.dataset.dataUrl = msg.content || '';
+        preview.dataset.filename = msg.filename || 'file';
+        if (preview.dataset.mediaType === 'image') {
+            const img = document.createElement("img");
+            img.src = msg.content;
+            img.className = "max-w-full max-h-56 object-cover rounded-xl transition-all group-hover:brightness-90";
+            preview.appendChild(img);
+        } else if (preview.dataset.mediaType === 'video') {
+            const video = document.createElement("video");
+            video.src = msg.content;
+            video.className = "max-w-full max-h-56 object-cover rounded-xl";
+            video.controls = true;
+            preview.appendChild(video);
+        } else {
+            const doc = document.createElement("div");
+            doc.className = "flex items-center space-x-3 p-3 bg-gray-50 dark:bg-[#111b21]/70 hover:bg-gray-100 dark:hover:bg-[#111b21] rounded-xl cursor-pointer border border-gray-100 dark:border-transparent transition-all";
+            doc.innerHTML = `
+                <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-950/40 rounded-lg flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-file-pdf text-indigo-500 text-lg"></i>
+                </div>
+                <div class="truncate max-w-[150px]">
+                    <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">${escapeHtml(msg.filename || 'Document')}</h4>
+                    <span class="text-[9px] text-gray-400 font-mono">${escapeHtml(msg.filesize || '')}</span>
+                </div>
+                <i class="fa-solid fa-eye text-gray-400 text-xs shrink-0 pl-1"></i>`;
+            preview.appendChild(doc);
+        }
+        bubble.appendChild(preview);
+    } else if (msg.type === "voice") {
+        const audioRow = document.createElement("div");
+        audioRow.className = "flex items-center space-x-2.5 py-1";
+        const playBtn = document.createElement("button");
+        playBtn.className = "w-8 h-8 rounded-full bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md transition-all shrink-0";
+        playBtn.dataset.action = "play-audio";
+        playBtn.dataset.audioSrc = msg.content;
+        playBtn.innerHTML = '<i class="fa-solid fa-play text-xs pl-0.5"></i>';
+        const bar = document.createElement("div");
+        bar.className = "w-32 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden relative";
+        const fill = document.createElement("div");
+        fill.className = "bg-emerald-500 h-full w-0 progress-fill-bar";
+        bar.appendChild(fill);
+        const label = document.createElement("span");
+        label.className = "text-[10px] text-gray-400 font-mono";
+        label.textContent = "Audio";
+        audioRow.append(playBtn, bar, label);
+        bubble.appendChild(audioRow);
+    } else {
+        const text = document.createElement("p");
+        text.className = "text-xs leading-relaxed break-words";
+        text.innerHTML = escapeHtml(msg.content || "");
+        bubble.appendChild(text);
+    }
+
+    const time = document.createElement("span");
+    time.className = `block text-[8px] mt-1 text-right ${isMe ? 'text-emerald-200' : 'text-gray-400'} font-mono`;
+    time.textContent = parsedTime;
+    bubble.appendChild(time);
+
+    bubbleWrap.appendChild(bubble);
+    mContainer.appendChild(bubbleWrap);
+}
+
+function openInAppMediaViewer(dataUrl, type, filename) {
+    const lightbox = document.getElementById("media-lightbox");
+    const container = document.getElementById("lightbox-payload-container");
+    const title = document.getElementById("lightbox-title");
+    title.innerText = filename || "Internal Media Preview";
+    container.innerHTML = "";
+
+    if (type === "image") {
+        const img = document.createElement("img");
+        img.src = dataUrl;
+        img.className = "max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl animate-zoom-in";
+        container.appendChild(img);
+    } else if (type === "video") {
+        const video = document.createElement("video");
+        video.src = dataUrl;
+        video.controls = true;
+        video.autoplay = true;
+        video.className = "max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl";
+        container.appendChild(video);
+    } else if (type === "document") {
+        if (dataUrl.startsWith("data:application/pdf")) {
+            const iframe = document.createElement("iframe");
+            iframe.src = dataUrl;
+            iframe.className = "w-full h-[70vh] rounded-lg border-none bg-white";
+            container.appendChild(iframe);
+        } else if (dataUrl.startsWith("data:text/plain")) {
+            const rawText = atob(dataUrl.split(",")[1]);
+            const txtBox = document.createElement("div");
+            txtBox.className = "w-full h-[65vh] bg-gray-900 text-emerald-400 p-4 rounded-lg font-mono text-xs overflow-y-auto select-text whitespace-pre-wrap";
+            txtBox.innerText = rawText;
+            container.appendChild(txtBox);
+        } else {
+            container.innerHTML = `
+                <div class="text-center text-white space-y-3 p-6 max-w-xs bg-white/5 rounded-2xl backdrop-blur">
+                    <span class="text-4xl">📂</span>
+                    <h4 class="text-sm font-semibold">${escapeHtml(filename || 'Document')}</h4>
+                    <p class="text-[10px] text-gray-400">Office format files must be opened on system applications. Press down to export manually.</p>
+                    <a href="${dataUrl}" download="${escapeHtml(filename || 'file')}" class="inline-block mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold">Export Offline File</a>
+                </div>`;
+        }
+    }
+
+    lightbox.classList.remove("hidden");
+}
+
+function closeInAppMediaViewer() {
+    const lightbox = document.getElementById("media-lightbox");
+    const container = document.getElementById("lightbox-payload-container");
+    lightbox.classList.add("hidden");
+    container.innerHTML = "";
+}
+
+function playAudioBlobNode(audioDataUrl, playBtn) {
+    const player = document.getElementById("audio-player-node");
+    const progress = playBtn.nextElementSibling.firstElementChild;
+    if (player.src === audioDataUrl && !player.paused) {
+        player.pause();
+        playBtn.innerHTML = '<i class="fa-solid fa-play text-xs pl-0.5"></i>';
+        return;
+    }
+
+    document.querySelectorAll(".progress-fill-bar").forEach(el => el.style.width = '0%');
+    document.querySelectorAll("button i.fa-pause").forEach(icon => {
+        icon.className = "fa-solid fa-play text-xs pl-0.5";
+    });
+
+    player.src = audioDataUrl;
+    player.play();
+    playBtn.innerHTML = '<i class="fa-solid fa-pause text-xs"></i>';
+
+    player.ontimeupdate = () => {
+        const pct = (player.currentTime / player.duration) * 100;
+        progress.style.width = `${pct}%`;
+    };
+
+    player.onended = () => {
+        progress.style.width = '0%';
+        playBtn.innerHTML = '<i class="fa-solid fa-play text-xs pl-0.5"></i>';
+    };
+}
+
+function navigateToSidebar() {
+    selectedPhone = "";
+    selectedPeerID = "";
+    selectedName = "";
+    const win = document.getElementById("view-chat-window");
+    win.classList.add("translate-x-full");
+    populateConversationsGrid();
+}
+
+function toggleMobileAttachmentOverlay() {
+    const box = document.getElementById("mobile-attachment-box");
+    box.classList.toggle("hidden");
+}
+
+async function processFileQueue(event, type) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const maxBytes = file.type.startsWith("video/") ? 1500 * 1024 : 1024 * 1024;
+    if (file.size > maxBytes && !file.type.startsWith("image/")) {
+        invokeDeviceToast("File is too large for reliable offline sending (video max 1.5 MB; documents max 1 MB)", true);
+        return;
+    }
+
+    try {
+        let dataUrl;
+        let finalSize = file.size;
+        if (file.type.startsWith("image/")) {
+            const compressed = await compressImageForSending(file);
+            dataUrl = compressed.dataUrl;
+            finalSize = compressed.size;
+        } else {
+            dataUrl = await readFileAsDataUrl(file);
+        }
+        queuedAttachedFile = {
+            filename: file.name,
+            filesize: formatBytesLabel(finalSize),
+            dataUrl
+        };
+
+        const preview = document.getElementById("file-attachment-preview");
+        preview.classList.remove("hidden");
+        document.getElementById("file-label-name").innerText = file.name;
+        document.getElementById("file-label-size").innerText = formatBytesLabel(finalSize);
+        const icon = document.getElementById("file-type-icon");
+        icon.innerText = file.type.startsWith("image/") ? "📸" : file.type.startsWith("video/") ? "🎥" : "📄";
+        toggleMobileAttachmentOverlay();
+        evaluateControlIcons();
+    } catch (_) {
+        invokeDeviceToast("Could not prepare that file for sending", true);
+    }
+}
+
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+async function compressImageForSending(file) {
+    const source = await readFileAsDataUrl(file);
+    const image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = source;
+    });
+    const longestSide = Math.max(image.width, image.height);
+    const scale = Math.min(1, 1280 / longestSide);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.width * scale);
+    canvas.height = Math.round(image.height * scale);
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+    const size = Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75);
+    if (size > 1024 * 1024) throw new Error("compressed image is still too large");
+    return { dataUrl, size };
+}
+
+function formatBytesLabel(bytes) {
+    if (bytes < 1024) return bytes + " Bytes";
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+    else return (bytes / 1048576).toFixed(1) + " MB";
+}
+
+function dropQueuedFileAttachment() {
+    queuedAttachedFile = null;
+    document.getElementById("file-attachment-preview").classList.add("hidden");
+    document.getElementById("input-doc").value = "";
+    document.getElementById("input-image").value = "";
+    evaluateControlIcons();
+}
+
+function catchInputEnter(e) {
+    if (e.key === "Enter") {
+        dispatchOutgoingMessage();
+    }
+}
+
+function evaluateControlIcons() {
+    const textVal = document.getElementById("input-chat-message").value.trim();
+    const micBtn = document.getElementById("action-mic-btn");
+    const sendBtn = document.getElementById("action-send-btn");
+
+    if (textVal !== "" || queuedAttachedFile !== null) {
+        micBtn.classList.add("hidden");
+        sendBtn.classList.remove("hidden");
+    } else {
+        sendBtn.classList.add("hidden");
+        micBtn.classList.remove("hidden");
+    }
+}
+
+function dispatchOutgoingMessage() {
+    const textVal = document.getElementById("input-chat-message").value.trim();
+    if (textVal === "" && queuedAttachedFile === null) return;
+
+    let finalPayload = {};
+    
+    if (queuedAttachedFile !== null) {
+        finalPayload = {
+            senderPhone: activeProfile.phone,
+            senderName: activeProfile.name,
+            content: queuedAttachedFile.dataUrl,
+            type: "file",
+            filename: queuedAttachedFile.filename,
+            filesize: queuedAttachedFile.filesize,
+            timestamp: Date.now(),
+            id: messageId()
+        };
+        dropQueuedFileAttachment();
+    } else {
+        finalPayload = {
+            senderPhone: activeProfile.phone,
+            senderName: activeProfile.name,
+            content: textVal,
+            type: "text",
+            timestamp: Date.now(),
+            id: messageId()
+        };
+        document.getElementById("input-chat-message").value = "";
+    }
+
+    const localEnvelope = {
+        ...finalPayload,
+        threadOwner: selectedPhone
+    };
+
+    globalHistory.push(localEnvelope);
+    localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+    appendSingleMessageUI(localEnvelope);
+    scrollToChatBottom();
+    evaluateControlIcons();
+
+    enqueueOutgoingMessage(finalPayload, selectedPeerID);
+    populateConversationsGrid();
+}
+
+function triggerVoiceCapture() {
+    if (micRecorderObj && micRecorderObj.state === "recording") {
+        finalizeAndSendVoiceNote();
+        return;
+    }
+
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        globalAudioStreamRef = stream;
+        micRecorderObj = new MediaRecorder(stream);
+        capturedChunks = [];
+        
+        micRecorderObj.ondataavailable = e => capturedChunks.push(e.data);
+        
+        micRecorderObj.onstop = () => {
+            const audioBlob = new Blob(capturedChunks, { type: 'audio/mp3' });
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+            reader.onloadend = () => {
+                const base64Audio = reader.result;
+                const voicePayload = {
+                    senderPhone: activeProfile.phone,
+                    senderName: activeProfile.name,
+                    content: base64Audio,
+                    type: "voice",
+                    timestamp: Date.now(),
+                    id: messageId()
+                };
+
+                const envelope = { ...voicePayload, threadOwner: selectedPhone };
+                globalHistory.push(envelope);
+                localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+                appendSingleMessageUI(envelope);
+                scrollToChatBottom();
+                enqueueOutgoingMessage(voicePayload, selectedPeerID);
+                populateConversationsGrid();
+            };
+        };
+
+        micRecorderObj.start();
+        document.getElementById("recording-panel").classList.remove("hidden");
+        
+        ticksCounter = 0;
+        document.getElementById("recording-timer").innerText = "00:00";
+        timerTracker = setInterval(() => {
+            ticksCounter++;
+            const m = String(Math.floor(ticksCounter / 60)).padStart(2, '0');
+            const s = String(ticksCounter % 60).padStart(2, '0');
+            document.getElementById("recording-timer").innerText = `${m}:${s}`;
+        }, 1000);
+    }).catch(() => {
+        invokeDeviceToast("Access to local Microphone refused", true);
+    });
+}
+
+function finalizeAndSendVoiceNote() {
+    if (micRecorderObj) {
+        micRecorderObj.stop();
+        micRecorderObj = null;
+    }
+    if (globalAudioStreamRef) {
+        globalAudioStreamRef.getTracks().forEach(t => t.stop());
+    }
+    clearInterval(timerTracker);
+    document.getElementById("recording-panel").classList.add("hidden");
+}
+
+function discardVoiceNote() {
+    if (micRecorderObj) {
+        micRecorderObj.onstop = null;
+        micRecorderObj.stop();
+        micRecorderObj = null;
+    }
+    if (globalAudioStreamRef) {
+        globalAudioStreamRef.getTracks().forEach(t => t.stop());
+    }
+    clearInterval(timerTracker);
+    document.getElementById("recording-panel").classList.add("hidden");
+    invokeDeviceToast("Recording deleted", false);
+}
+
+function scrollToChatBottom() {
+    const container = document.getElementById("message-container");
+    setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+}
+
+function clearCurrentChatLog() {
+    if (!confirm("Remove this thread history permanently?")) return;
+    globalHistory = globalHistory.filter(m => m.threadOwner !== selectedPhone);
+    localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
+    loadSelectedChatMessages();
+    populateConversationsGrid();
+}
+
+function toggleBlockActiveStudent() {
+    const index = globalBlocks.indexOf(selectedPeerID);
+    const blockBtn = document.getElementById("block-icon-ui");
+    
+    if (index > -1) {
+        globalBlocks.splice(index, 1);
+        blockBtn.className = "p-2 text-gray-500 dark:text-gray-300 text-xs";
+        invokeDeviceToast("Student pipeline restored", false);
+    } else {
+        globalBlocks.push(selectedPeerID);
+        blockBtn.className = "p-2 text-red-500 text-xs";
+        invokeDeviceToast("Student pipeline frozen", true);
+    }
+    localStorage.setItem("mob_blocked_nodes", JSON.stringify(globalBlocks));
+    launchMobileThread(selectedPhone, selectedPeerID, selectedName);
+}
+
+function toggleDarkMode() {
+    document.documentElement.classList.toggle("dark");
+}
+
+function logoutUser() {
+    if (!confirm("Log out from local profile? (All offline logs will persist)")) return;
+    localStorage.removeItem("mob_active_profile");
+    activeProfile = null;
+    if (networkState.peer && !networkState.peer.destroyed) {
+        networkState.peer.destroy();
+        networkState.peer = null;
+    }
+    networkState.connections.clear();
+    networkState.connectingPeers.clear();
+    networkState.outbox = [];
+    persistOutbox();
+    document.getElementById("auth-screen").classList.remove("hidden");
+}
+
+function invokeDeviceToast(text, isAlert) {
+    const toast = document.getElementById("mobile-toast");
+    const box = document.getElementById("toast-text-box");
+    const icon = document.getElementById("toast-icon-box");
+
+    box.innerText = text;
+    if (isAlert) {
+        icon.className = "fa-solid fa-triangle-exclamation text-rose-500";
+    } else {
+        icon.className = "fa-solid fa-circle-check text-emerald-500";
+    }
+
+    toast.classList.remove("hidden");
+    setTimeout(() => { toast.classList.add("hidden"); }, 3000);
+}
+
+function escapeHtml(text) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+function listenForFirebaseMessages() {
     if (!activeProfile) return;
     const inboxRef = db.ref('queues/' + activeProfile.peerId);
-    
     inboxRef.on('child_added', (snapshot) => {
         const payload = snapshot.val();
         if (payload) {
-            ingestIncomingPayload(payload, payload.senderPhone);
-            snapshot.ref.remove(); // Clean up cloud storage after receiving
+            ingestIncomingPayload(payload, payload.senderPhone || snapshot.key);
+            snapshot.ref.remove();
         }
     });
 }
