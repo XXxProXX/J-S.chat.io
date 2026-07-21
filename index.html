@@ -233,6 +233,7 @@ let pendingAlertName = "";
 
 let uiBindingsInitialized = false;
 let peerRestartTimer = null;
+let outboxRetryTimer = null;
 
 const networkState = {
     peer: null,
@@ -551,11 +552,17 @@ function populateConversationsGrid() {
 
 function mountPeerNodePipelines() {
     clearTimeout(peerRestartTimer);
+    clearInterval(outboxRetryTimer);
     if (networkState.peer && !networkState.peer.destroyed && networkState.peer.id === activeProfile.peerId) {
         return;
     }
     startPeerNode();
-    window.addEventListener('online', flushOutbox, { once: true });
+    outboxRetryTimer = setInterval(() => {
+        if (networkState.outbox.length) {
+            flushOutbox();
+        }
+    }, 4000);
+    window.addEventListener('online', () => flushOutbox(), { once: true });
 }
 
 function startPeerNode() {
@@ -1392,6 +1399,7 @@ function logoutUser() {
         networkState.peer.destroy();
         networkState.peer = null;
     }
+    clearInterval(outboxRetryTimer);
     networkState.connections.clear();
     networkState.connectingPeers.clear();
     networkState.outbox = [];
