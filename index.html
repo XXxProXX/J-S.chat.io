@@ -766,9 +766,12 @@ function removeOutboxMessage(messageIdValue) {
     }
 }
 
-function shouldUseFirebaseFallback(payload) {
+function shouldUseFirebaseFallback(payload, conn) {
     if (!payload) return false;
-    if (payload.type === 'file' || payload.type === 'voice') return true;
+    if (conn && conn.open) return false;
+    if (payload.type === 'file' || payload.type === 'voice') {
+        return false;
+    }
     const serializedLength = JSON.stringify(payload).length;
     return serializedLength > MAX_DIRECT_PAYLOAD_CHARS;
 }
@@ -785,7 +788,7 @@ function flushOutbox(remotePeerId = null) {
             continue;
         }
         const conn = networkState.connections.get(target);
-        if (conn && conn.open && !shouldUseFirebaseFallback(item.payload)) {
+        if (conn && conn.open) {
             try {
                 conn.send(item.payload);
                 console.debug('[network] Message handed to connection:', item.id, target);
@@ -793,22 +796,23 @@ function flushOutbox(remotePeerId = null) {
             } catch (error) {
                 remaining.push(item);
                 console.debug('[network] Send failed, re-queueing:', item.id, target, error);
-            }
-        } else {
-            if (shouldUseFirebaseFallback(item.payload)) {
-                saveToFirebaseFallback(item.payload, target).then((saved) => {
-                    if (saved) {
-                        removeOutboxMessage(item.id || item.payload?.id || item.payload?.messageId);
-                    }
-                });
-            } else {
-                remaining.push(item);
                 if (!networkState.reconnectTimers.has(target)) {
                     scheduleReconnect(target);
                 }
             }
-            if (networkState.peer && networkState.peer.open && !shouldUseFirebaseFallback(item.payload)) {
-                saveToFirebaseFallback(item.payload, target);
+            continue;
+        }
+
+        if (shouldUseFirebaseFallback(item.payload, conn)) {
+            saveToFirebaseFallback(item.payload, target).then((saved) => {
+                if (saved) {
+                    removeOutboxMessage(item.id || item.payload?.id || item.payload?.messageId);
+                }
+            });
+        } else {
+            remaining.push(item);
+            if (!networkState.reconnectTimers.has(target)) {
+                scheduleReconnect(target);
             }
         }
     }
