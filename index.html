@@ -1192,8 +1192,9 @@ async function processFileQueue(event, type) {
         icon.innerText = file.type.startsWith("image/") ? "📸" : file.type.startsWith("video/") ? "🎥" : "📄";
         toggleMobileAttachmentOverlay();
         evaluateControlIcons();
-    } catch (_) {
-        invokeDeviceToast("Could not prepare that file for sending", true);
+    } catch (error) {
+        console.error("file prep failed", error);
+        invokeDeviceToast(error && error.message ? error.message : "Could not prepare that file for sending", true);
     }
 }
 
@@ -1201,9 +1202,15 @@ function readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
+        reader.onerror = () => reject(new Error("File reading failed"));
         reader.readAsDataURL(file);
     });
+}
+
+function formatBytesLabel(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 async function compressImageForSending(file) {
