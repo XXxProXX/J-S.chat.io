@@ -235,6 +235,8 @@ let uiBindingsInitialized = false;
 let peerRestartTimer = null;
 let outboxRetryTimer = null;
 
+const MAX_DIRECT_PAYLOAD_CHARS = 240000;
+
 const networkState = {
     peer: null,
     peerId: null,
@@ -714,13 +716,14 @@ function wireConnection(conn) {
     const peerId = conn.peer;
     conn.on('data', (payload) => {
         if (payload && payload.type === 'delivery_ack') {
-            removeOutboxMessage(payload.id);
+            removeOutboxMessage(payload.id || payload.messageId);
             return;
         }
         if (activeProfile.isTeacher && globalBlocks.includes(peerId)) return;
         ingestIncomingPayload(payload, peerId);
-        if (payload && payload.id) {
-            try { conn.send({ type: 'delivery_ack', id: payload.id }); } catch (_) {}
+        const ackId = payload && (payload.id || payload.messageId);
+        if (ackId) {
+            try { conn.send({ type: 'delivery_ack', id: ackId, messageId: ackId }); } catch (_) {}
         }
     });
 
@@ -741,7 +744,7 @@ function persistOutbox() {
 
 function enqueueOutgoingMessage(payload, remotePeerId) {
     if (!remotePeerId) return;
-    const messageIdValue = payload.id || messageId();
+    const messageIdValue = payload.id || payload.messageId || messageId();
     if (networkState.seenMessageIds.has(messageIdValue)) return;
     networkState.seenMessageIds.add(messageIdValue);
     const item = { id: messageIdValue, remotePeerId, payload, createdAt: Date.now() };
@@ -752,11 +755,22 @@ function enqueueOutgoingMessage(payload, remotePeerId) {
 }
 
 function removeOutboxMessage(messageIdValue) {
+    if (!messageIdValue) return;
     const before = networkState.outbox.length;
-    networkState.outbox = networkState.outbox.filter(item => item.id !== messageIdValue);
+    networkState.outbox = networkState.outbox.filter(item => {
+        const itemId = item.id || item.payload?.id || item.payload?.messageId;
+        return itemId !== messageIdValue;
+    });
     if (networkState.outbox.length !== before) {
         persistOutbox();
     }
+}
+
+function shouldUseFirebaseFallback(payload) {
+    if (!payload) return false;
+    if (payload.type === 'file' || payload.type === 'voice') return true;
+    const serializedLength = JSON.stringify(payload).length;
+    return serializedLength > MAX_DIRECT_PAYLOAD_CHARS;
 }
 
 function flushOutbox(remotePeerId = null) {
@@ -771,7 +785,7 @@ function flushOutbox(remotePeerId = null) {
             continue;
         }
         const conn = networkState.connections.get(target);
-        if (conn && conn.open) {
+        if (conn && conn.open && !shouldUseFirebaseFallback(item.payload)) {
             try {
                 conn.send(item.payload);
                 console.debug('[network] Message handed to connection:', item.id, target);
@@ -781,11 +795,19 @@ function flushOutbox(remotePeerId = null) {
                 console.debug('[network] Send failed, re-queueing:', item.id, target, error);
             }
         } else {
-            remaining.push(item);
-            if (!networkState.reconnectTimers.has(target)) {
-                scheduleReconnect(target);
+            if (shouldUseFirebaseFallback(item.payload)) {
+                saveToFirebaseFallback(item.payload, target).then((saved) => {
+                    if (saved) {
+                        removeOutboxMessage(item.id || item.payload?.id || item.payload?.messageId);
+                    }
+                });
+            } else {
+                remaining.push(item);
+                if (!networkState.reconnectTimers.has(target)) {
+                    scheduleReconnect(target);
+                }
             }
-            if (networkState.peer && networkState.peer.open) {
+            if (networkState.peer && networkState.peer.open && !shouldUseFirebaseFallback(item.payload)) {
                 saveToFirebaseFallback(item.payload, target);
             }
         }
@@ -796,8 +818,10 @@ function flushOutbox(remotePeerId = null) {
 }
 
 function saveToFirebaseFallback(payload, peerId) {
-    if (!db || !peerId) return;
-    db.ref('queues/' + peerId + '/' + payload.id).set(payload).catch(() => {});
+    if (!db || !peerId || !payload) return Promise.resolve(false);
+    return db.ref('queues/' + peerId + '/' + (payload.id || payload.messageId || messageId())).set(payload)
+        .then(() => true)
+        .catch(() => false);
 }
 
 function handleSyncRequest(conn, senderPhone) {
@@ -1187,23 +1211,14 @@ async function compressImageForSending(file) {
         img.src = source;
     });
     const longestSide = Math.max(image.width, image.height);
-    const scale = Math.min(1, 1280 / longestSide);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(image.width * scale);
-    canvas.height = Math.round(image.height * scale);
-    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
-    const size = Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75);
-    if (size > 1024 * 1024) throw new Error("compressed image is still too large");
-    return { dataUrl, size };
-}
-
-function formatBytesLabel(bytes) {
-    if (bytes < 1024) return bytes + " Bytes";
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-    else return (bytes / 1048576).toFixed(1) + " MB";
-}
-
+        const scale = Math.min(1, 900 / longestSide);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+        canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.62);
+        const size = Math.round((dataUrl.length - dataUrl.indexOf(',') - 1) * 0.75);
+        if (size > 320 * 1024) throw new Error("compressed image is still too large");
 function dropQueuedFileAttachment() {
     queuedAttachedFile = null;
     document.getElementById("file-attachment-preview").classList.add("hidden");
@@ -1237,6 +1252,7 @@ function dispatchOutgoingMessage() {
     if (textVal === "" && queuedAttachedFile === null) return;
 
     let finalPayload = {};
+    const messageKey = messageId();
     
     if (queuedAttachedFile !== null) {
         finalPayload = {
@@ -1247,7 +1263,8 @@ function dispatchOutgoingMessage() {
             filename: queuedAttachedFile.filename,
             filesize: queuedAttachedFile.filesize,
             timestamp: Date.now(),
-            id: messageId()
+            id: messageKey,
+            messageId: messageKey
         };
         dropQueuedFileAttachment();
     } else {
@@ -1257,7 +1274,8 @@ function dispatchOutgoingMessage() {
             content: textVal,
             type: "text",
             timestamp: Date.now(),
-            id: messageId()
+            id: messageKey,
+            messageId: messageKey
         };
         document.getElementById("input-chat-message").value = "";
     }
@@ -1296,13 +1314,15 @@ function triggerVoiceCapture() {
             reader.readAsDataURL(audioBlob);
             reader.onloadend = () => {
                 const base64Audio = reader.result;
+                const messageKey = messageId();
                 const voicePayload = {
                     senderPhone: activeProfile.phone,
                     senderName: activeProfile.name,
                     content: base64Audio,
                     type: "voice",
                     timestamp: Date.now(),
-                    id: messageId()
+                    id: messageKey,
+                    messageId: messageKey
                 };
 
                 const envelope = { ...voicePayload, threadOwner: selectedPhone };
