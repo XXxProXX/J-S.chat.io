@@ -1305,7 +1305,7 @@ function dispatchOutgoingMessage() {
     scrollToChatBottom();
     evaluateControlIcons();
 
-    // Media files and large payloads route securely via Firebase queue to guarantee delivery
+    // Route files via Firebase to avoid WebRTC size limits
     if (finalPayload.type === 'file') {
         saveToFirebaseFallback(finalPayload, selectedPeerID);
     } else {
