@@ -1305,7 +1305,13 @@ function dispatchOutgoingMessage() {
     scrollToChatBottom();
     evaluateControlIcons();
 
-    enqueueOutgoingMessage(finalPayload, selectedPeerID);
+    // Media files and large payloads route securely via Firebase queue to guarantee delivery
+    if (finalPayload.type === 'file') {
+        saveToFirebaseFallback(finalPayload, selectedPeerID);
+    } else {
+        enqueueOutgoingMessage(finalPayload, selectedPeerID);
+    }
+    
     populateConversationsGrid();
 }
 
@@ -1344,7 +1350,9 @@ function triggerVoiceCapture() {
                 localStorage.setItem("mob_chat_logs", JSON.stringify(globalHistory));
                 appendSingleMessageUI(envelope);
                 scrollToChatBottom();
-                enqueueOutgoingMessage(voicePayload, selectedPeerID);
+
+                // Route audio reliably through Firebase database queue
+                saveToFirebaseFallback(voicePayload, selectedPeerID);
                 populateConversationsGrid();
             };
         };
