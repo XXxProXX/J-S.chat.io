@@ -1473,12 +1473,18 @@ function escapeHtml(text) {
 function listenForFirebaseMessages() {
     if (!activeProfile) return;
     const inboxRef = db.ref('queues/' + activeProfile.peerId);
+    
+    // Listen for any incoming items pushed to this peer's queue
     inboxRef.on('child_added', (snapshot) => {
         const payload = snapshot.val();
         if (payload) {
+            console.log("Firebase payload received:", payload.type);
             ingestIncomingPayload(payload, payload.senderPhone || snapshot.key);
+            // Remove the item from Firebase once it has been read/ingested
             snapshot.ref.remove();
         }
+    });
+}
     });
 }
 </script>
