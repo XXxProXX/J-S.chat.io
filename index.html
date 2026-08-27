@@ -567,23 +567,63 @@ function mountPeerNodePipelines() {
     window.addEventListener('online', () => flushOutbox(), { once: true });
 }
 
-function startPeerNode() {
-    if (!activeProfile) return;
-    if (networkState.peer && !networkState.peer.destroyed) {
+function startPeerNode(peerId) {
+    // 1. Ensure PeerJS library is loaded
+    if (typeof Peer === 'undefined') {
+        console.error("PeerJS library is not loaded! Check your script tag CDN.");
+        const status = document.getElementById("node-status");
+        if (status) status.innerText = "Error: PeerJS library missing";
         return;
     }
+
+    // 2. Initialize the Peer instance safely
+    try {
+        networkState.peer = new Peer(peerId, {
+            debug: 2,
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
+                ]
+            }
+        });
+    } catch (err) {
+        console.error("Failed to construct Peer object:", err);
+        return;
+    }
+
+    // 3. Prevent null-reading errors before setting listeners
+    if (!networkState.peer) {
+        console.error("networkState.peer is null after initialization attempt.");
+        return;
+    }
+
+    // 4. Set up the standard connection listeners
+    networkState.peer.on('open', (id) => {
+        networkState.peerId = id;
+        const status = document.getElementById("node-status");
+        if (status) {
+            status.innerText = "Connected to network";
+            status.className = "text-[11px] font-medium text-emerald-600 dark:text-emerald-400";
+        }
+    });
+
+    networkState.peer.on('connection', (conn) => {
+        handleIncomingConnection(conn);
+    });
 
     networkState.peer.on('error', (error) => {
         networkState.lastError = error;
         const status = document.getElementById("node-status");
         
         if (error && error.type === 'unavailable-id') {
-            status.innerText = "This profile is already open in another tab or device";
-            status.className = "text-[11px] font-medium text-rose-600 dark:text-rose-400";
+            if (status) {
+                status.innerText = "This profile is already open in another tab or device";
+                status.className = "text-[11px] font-medium text-rose-600 dark:text-rose-400";
+            }
             return;
         }
         
-        // Gracefully handle peer-unavailable and WebRTC drops by routing through Firebase
         if (error && (error.type === 'peer-unavailable' || error.type === 'webrtc')) {
             const partnerStatus = document.getElementById("active-partner-status");
             if (partnerStatus) {
@@ -594,19 +634,10 @@ function startPeerNode() {
         }
 
         const reason = error && error.type ? ` (${error.type})` : '';
-        status.innerText = `Reconnecting secure link${reason} — messages stay queued`;
-        status.className = "text-[11px] font-medium text-amber-600 dark:text-amber-400";
-        if (networkState.peer && !networkState.peer.destroyed) {
-            scheduleReconnectForPeer();
+        if (status) {
+            status.innerText = `Reconnecting secure link${reason} — messages stay queued`;
+            status.className = "text-[11px] font-medium text-amber-600 dark:text-amber-400";
         }
-    });
-
-    networkState.peer.on('disconnected', () => {
-        networkState.peerReady = false;
-        const status = document.getElementById("node-status");
-        status.innerText = "Secure link interrupted — reconnecting";
-        status.className = "text-[11px] font-medium text-amber-600 dark:text-amber-400";
-        scheduleReconnectForPeer();
     });
 }
 
