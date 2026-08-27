@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -162,7 +161,7 @@
     </div>
 </div>
 
-<!-- INSTAGRAM STYLE IN-APP LIGHTBOX VIEWER (NO DOWNLOAD REQUIRED) -->
+<!-- IN-APP LIGHTBOX VIEWER -->
 <div id="media-lightbox" class="fixed inset-0 bg-black/95 backdrop-blur-md z-50 hidden flex flex-col justify-between p-4 transition-all duration-300">
     <div class="flex items-center justify-between w-full">
         <span id="lightbox-title" class="text-white text-xs font-medium truncate max-w-[70%]">In-App Media File</span>
@@ -558,7 +557,8 @@ function mountPeerNodePipelines() {
     if (networkState.peer && !networkState.peer.destroyed && networkState.peer.id === activeProfile.peerId) {
         return;
     }
-    startPeerNode();
+    // FIXED: Correctly pass activeProfile.peerId to startPeerNode()
+    startPeerNode(activeProfile.peerId);
     outboxRetryTimer = setInterval(() => {
         if (networkState.outbox.length) {
             flushOutbox();
@@ -568,7 +568,6 @@ function mountPeerNodePipelines() {
 }
 
 function startPeerNode(peerId) {
-    // 1. Ensure PeerJS library is loaded
     if (typeof Peer === 'undefined') {
         console.error("PeerJS library is not loaded! Check your script tag CDN.");
         const status = document.getElementById("node-status");
@@ -576,7 +575,6 @@ function startPeerNode(peerId) {
         return;
     }
 
-    // 2. Initialize the Peer instance safely
     try {
         networkState.peer = new Peer(peerId, {
             debug: 2,
@@ -592,13 +590,11 @@ function startPeerNode(peerId) {
         return;
     }
 
-    // 3. Prevent null-reading errors before setting listeners
     if (!networkState.peer) {
         console.error("networkState.peer is null after initialization attempt.");
         return;
     }
 
-    // 4. Set up the standard connection listeners
     networkState.peer.on('open', (id) => {
         networkState.peerId = id;
         const status = document.getElementById("node-status");
@@ -639,6 +635,11 @@ function startPeerNode(peerId) {
             status.className = "text-[11px] font-medium text-amber-600 dark:text-amber-400";
         }
     });
+}
+
+function handleIncomingConnection(conn) {
+    registerConnection(conn.peer, conn);
+    wireConnection(conn);
 }
 
 function scheduleReconnectForPeer() {
@@ -1314,7 +1315,6 @@ function dispatchOutgoingMessage() {
     scrollToChatBottom();
     evaluateControlIcons();
 
-    // Route files via Firebase to avoid WebRTC size limits
     if (finalPayload.type === 'file') {
         saveToFirebaseFallback(finalPayload, selectedPeerID);
     } else {
@@ -1360,7 +1360,6 @@ function triggerVoiceCapture() {
                 appendSingleMessageUI(envelope);
                 scrollToChatBottom();
 
-                // Route audio reliably through Firebase database queue
                 saveToFirebaseFallback(voicePayload, selectedPeerID);
                 populateConversationsGrid();
             };
@@ -1483,13 +1482,10 @@ function listenForFirebaseMessages() {
     if (!activeProfile) return;
     const inboxRef = db.ref('queues/' + activeProfile.peerId);
     
-    // Listen for any incoming items pushed to this peer's queue
     inboxRef.on('child_added', (snapshot) => {
         const payload = snapshot.val();
         if (payload) {
-            console.log("Firebase payload received:", payload.type);
             ingestIncomingPayload(payload, payload.senderPhone || snapshot.key);
-            // Remove the item from Firebase once it has been read/ingested
             snapshot.ref.remove();
         }
     });
